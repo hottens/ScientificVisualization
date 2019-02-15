@@ -1,6 +1,7 @@
 # import pygame
 import numpy as np
 import sys
+import math
 # import pyfftw
 # from pygame.locals import *
 
@@ -12,6 +13,7 @@ from OpenGL.GLUT import *
 frozen = False
 winWidth = 500
 winHeight = 500
+color_dir = False
 
 vec_scale = 1000
 draw_smoke = False
@@ -166,46 +168,114 @@ def diffuse_matter():
             field[-1, i, j] = (1 - s) * ((1 - t) * field0[-1, i0, j0] + t * field0[-1, i0, j1]) + s * (
                         (1 - t) * field0[-1, i1, j0] + t * field0[-1, i1, j1])
 
+### Visualization
+
+
+def rainbow(value):
+    dx = 0.8
+    if value<0 :
+        value=0
+    if value>1 :
+        value = 1
+    value = (6-2*dx)*value+dx
+    R = max(0.0,(3-np.fabs(value-4)-np.fabs(value-5))/2)
+    G = max(0.0,(4-np.fabs(value-2)-np.fabs(value-4))/2)
+    B = max(0.0,(3-np.fabs(value-1)-np.fabs(value-2))/2)
+    return [R,G,B]
+
+
+#set_colormap: Sets three different types of colormaps
+def set_colormap(vy):
+    RGB = np.zeros(3)
+
+    if scalar_col==COLOR_BLACKWHITE:
+        RGB.fill(vy)
+    elif scalar_col==COLOR_RAINBOW:
+       RGB = rainbow(vy)
+    elif scalar_col==COLOR_BANDS:
+        NLEVELS = 7
+        vy *= NLEVELS
+        vy = (int)(vy)
+        vy/= NLEVELS
+        rainbow(vy)
+    glColor3f(RGB[0], RGB[1], RGB[2])
+
+
+#direction_to_color: Set the current color by mapping a direction vector (x,y), using
+#                    the color mapping method 'method'. If method==1, map the vector direction
+#                    using a rainbow colormap. If method==0, simply use the white color
+def direction_to_color(x, y, method):
+    RGB = np.ones(3)
+    if method:
+        f = math.atan2(y, x) / 3.1415927 + 1
+        r = f
+        if r > 1:
+            r = 2 - r
+        g = f + .66667
+        if g > 2:
+            g -= 2
+        if g > 1:
+            g = 2 - g
+        b = f + 2 * .66667
+        if b > 2:
+            b -= 2
+        if b > 1:
+            b = 2 - b
+        RGB = [r, g, b]
+
+    glColor3f(RGB[0], RGB[1], RGB[2])
+
 
 def visualize():
     wn = winWidth / (DIM + 1)
     hn = winHeight / (DIM + 1)
 
     if draw_smoke:
-        #
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
-        for j in range(0, DIM - 1):
-            glBegin(GL_TRIANGLE_STRIP)
-            i = 0
-            px = wn + i * wn
-            py = hn + j * hn
-            idx = (j * DIM) + i
-            glColor3f(field[-1, i, j], field[-1, i, j], field[-1, i, j])
-            glVertex2f(px, py)
-            for i in range(0, DIM - 1):
-                px = wn + i * wn
-                py = hn + (j + 1) * hn
-                idx = ((j + 1) * DIM) + i
-                glColor3f(field[-1, i, j + 1], field[-1, i, j + 1], field[-1, i, j + 1])
-                glVertex2f(px, py)
-                px = wn + (i + 1) * wn
-                py = hn + j * hn
-                idx = (j * DIM) + (i + 1)
-                glColor3f(field[-1, i + 1, j], field[-1, i + 1, j], field[-1, i + 1, j])
-                glVertex2f(px, py)
-            px = wn + (DIM - 1) * wn
-            py = hn + (j + 1) * hn
-            idx = ((j + 1) * DIM) + (DIM - 1)
-            glColor3f(field[-1, DIM - 1, j + 1], field[-1, DIM - 1, j + 1], field[-1, DIM - 1, j + 1])
-            glVertex2f(px, py)
-            glEnd()
+        glBegin(GL_TRIANGLES)
+        for i in range(0, DIM - 1):
+            for j in range(0, DIM - 1):
+
+                px0 = wn + i * wn
+                py0 = hn + j * hn
+
+                px1 = wn + i * wn
+                py1 = hn + (j + 1) * hn
+                #idx1 = ((j + 1) * DIM) + i;
+
+                px2 = wn + (i + 1) * wn
+                py2 = hn + (j + 1) * hn
+                #dx2 = ((j + 1) * DIM) + (i + 1);
+
+                px3 = wn + (i + 1) * wn
+                py3 = hn + j * hn
+                #idx3 = (j * DIM) + (i + 1);
+
+                set_colormap(field[-1, i, j])
+                glVertex2f(px0, py0)
+
+                set_colormap(field[-1,i,j+1])
+                glVertex2f(px1, py1)
+
+                set_colormap(field[-1,i+1,j+1])
+                glVertex2f(px2, py2)
+
+                set_colormap(field[-1,i,j])
+                glVertex2f(px0, py0)
+
+                set_colormap(field[-1,i+1,j+1])
+                glVertex2f(px2, py2)
+
+                set_colormap(field[-1,i+1,j])
+                glVertex2f(px3, py3)
+
+        glEnd()
 
     if draw_vecs:
         glBegin(GL_LINES)
         for i in range(0, DIM):
             for j in range(0, DIM):
-                # direction_to_color
-                glColor3f(0.5, 0.5, 1)
+                direction_to_color(field[0, i, j], field[1, i, j], color_dir)
                 glVertex2f(wn + i * wn, hn + j * hn)
                 glVertex2f((wn + i * wn) + vec_scale * field[0, i, j], (hn + j * hn) + vec_scale * field[1, i, j])
                 # print((wn + i*wn) + vec_scale *field[0,i,j] - wn + i*wn)
@@ -297,7 +367,7 @@ def keyboard(key, x, y):
 
     elif ch == 'c':
         global color_dir
-        color_dir = 1 - color_dir
+        color_dir = not color_dir
 
     elif ch == 'S':
         global vec_scale
