@@ -32,13 +32,23 @@ frozen = False
 winWidth = 500
 winHeight = 500
 color_dir = False
+color_mag_v = 0
+colormap_type = 0
+scale_velo_map = 5
+NLEVELS = 2^256
+levels = [2^256,20,10,5]
+level = 0
 
+scaling_factor_mag = 10
+clamp_factor_mag = 0.02
+
+magdir = True
 vec_scale = 1000
 draw_smoke = False
 draw_vecs = True
 COLOR_BLACKWHITE = 0
 COLOR_RAINBOW = 1
-COLOR_BANDS = 2
+COLOR_TWOTONE = 2
 scalar_col = 0
 
 # Simulation
@@ -78,21 +88,7 @@ def clamp(x):
 
 
 def FFT(direction, v):
-    # varray = np.zeros((DIM+2,DIM))
-    # for i in range(0,DIM+2):
-    #     for j in range(0,DIM):
-    #         varray[i,j] = v[i+(DIM+2)*j]
-    # if direction == 1:
-    #     trans = np.fft.rfftn(varray)
-    # else:
-    #     trans = np.fft.irfftn(varray)
-    # print(varray)
-    # print(trans)
-    # vnew = np.zeros((DIM*(DIM+2)),dtype = np.complex_)
-    # for i in range(0,DIM+2):
-    #     for j in range(0,DIM):
-    #         vnew[i+(DIM+2)*j] = trans[i,j]
-    # return vnew
+
     return np.fft.rfft2(v) if direction == 1 else np.fft.irfft2(v)
 
 
@@ -201,21 +197,38 @@ def rainbow(value):
     B = max(0.0,(3-np.fabs(value-1)-np.fabs(value-2))/2)
     return [R,G,B]
 
+def twotone(value):
+    c1= [255/256,255/256,51/256]
+    c2 =  [0.0,51/256,255/256]
+
+
+    if value<0 :
+        value=0
+    if value>1 :
+        value = 1
+
+    R = value * (c1[0]-c2[0]) + c2[0]
+    G = value * (c1[1]-c2[1]) + c2[1]
+    B = value * (c1[2]-c2[2]) + c2[2]
+
+    return [R,G,B]
+
 
 #set_colormap: Sets three different types of colormaps
 def set_colormap(vy):
     RGB = np.zeros(3)
 
+    if not NLEVELS == 2^256:
+        vy = vy * NLEVELS
+        vy = int(vy)
+        vy = vy / NLEVELS
+
     if scalar_col==COLOR_BLACKWHITE:
         RGB.fill(vy)
     elif scalar_col==COLOR_RAINBOW:
        RGB = rainbow(vy)
-    elif scalar_col==COLOR_BANDS:
-        NLEVELS = 7
-        vy *= NLEVELS
-        vy = (int)(vy)
-        vy/= NLEVELS
-        rainbow(vy)
+    elif scalar_col == COLOR_TWOTONE:
+        RGB = twotone(vy)
     glColor3f(RGB[0], RGB[1], RGB[2])
 
 
@@ -243,15 +256,46 @@ def direction_to_color(x, y, method):
 
     glColor3f(RGB[0], RGB[1], RGB[2])
 
+def magnitude_to_color(x,y, colormaptype):
+    RGB = np.ones(3)
+    mag = np.sqrt(x*x + y*y)
+
+    mag = scaling_factor_mag * mag + clamp_factor_mag
+    if mag > 1:
+        mag = 1
+    if mag < 0:
+        mag = 0
+    if colormaptype == 0:
+        RGB = [mag,mag,mag]
+    elif colormaptype == 1:
+        RGB = rainbow(mag)
+    elif colormaptype == 2:
+        RGB = twotone(mag)
+
+    glColor3f(RGB[0],RGB[1],RGB[2])
+
+
+
 
 def visualize():
     wn = winWidth / (DIM + 1)
     hn = winHeight / (DIM + 1)
 
+
     if draw_smoke:
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
+        colormap = np.zeros((3,50,50))
+        if colormap_type == 0:
+            colormap = field[-1,:,:]
+        elif colormap_type == 1:
+            colormap = scale_velo_map * np.sqrt(field[0,:,:]*field[0,:,:] + field[1,:,:]*field[1,:,:])
+        elif colormap_type == 2:
+            colormap = np.sqrt(forces[0,:,:]*forces[0,:,:] + forces[1,:,:]*forces[1,:,:])
+
         glBegin(GL_TRIANGLES)
         for i in range(0, DIM - 1):
+
+
             for j in range(0, DIM - 1):
 
                 px0 = wn + i * wn
@@ -269,22 +313,22 @@ def visualize():
                 py3 = hn + j * hn
                 #idx3 = (j * DIM) + (i + 1);
 
-                set_colormap(field[-1, i, j])
+                set_colormap(colormap[i, j])
                 glVertex2f(px0, py0)
 
-                set_colormap(field[-1,i,j+1])
+                set_colormap(colormap[i,j+1])
                 glVertex2f(px1, py1)
 
-                set_colormap(field[-1,i+1,j+1])
+                set_colormap(colormap[i+1,j+1])
                 glVertex2f(px2, py2)
 
-                set_colormap(field[-1,i,j])
+                set_colormap(colormap[i,j])
                 glVertex2f(px0, py0)
 
-                set_colormap(field[-1,i+1,j+1])
+                set_colormap(colormap[i+1,j+1])
                 glVertex2f(px2, py2)
 
-                set_colormap(field[-1,i+1,j])
+                set_colormap(colormap[i+1,j])
                 glVertex2f(px3, py3)
 
         glEnd()
@@ -293,27 +337,16 @@ def visualize():
         glBegin(GL_LINES)
         for i in range(0, DIM):
             for j in range(0, DIM):
-                direction_to_color(field[0, i, j], field[1, i, j], color_dir)
+                if magdir:
+                    magnitude_to_color(field[0, i, j], field[1, i, j], color_mag_v)
+                else:
+                    direction_to_color(field[0, i, j], field[1, i, j], color_dir)
                 glVertex2f(wn + i * wn, hn + j * hn)
                 glVertex2f((wn + i * wn) + vec_scale * field[0, i, j], (hn + j * hn) + vec_scale * field[1, i, j])
                 # print((wn + i*wn) + vec_scale *field[0,i,j] - wn + i*wn)
         glEnd()
 
 
-# def static_vars(**kwargs):
-#     def decorate(func):
-#         for k in kwargs:
-#             setattr(func, k, kwargs[k])
-#         return func
-#     return decorate
-#
-# # @static_vars(counter=0)
-# # def foo():
-# #     foo.counter += 1
-# #     print "Counter is %d" % foo.counter
-#
-# @static_vars(lmx = 0)
-# @static_vars(lmy=0)
 def drag(mx, my):
     # lmx = 0
     # lmy = 0
@@ -387,6 +420,14 @@ def keyboard(key, x, y):
         global color_dir
         color_dir = not color_dir
 
+    elif ch == 'C':
+        global color_mag_v
+        color_mag_v += 1
+        if color_mag_v > 2:
+            color_mag_v = 0
+    elif ch == 'z':
+        global magdir
+        magdir = not magdir
     elif ch == 'S':
         global vec_scale
         vec_scale *= 1.2
@@ -410,11 +451,24 @@ def keyboard(key, x, y):
     elif ch == 'm':
         global scalar_col
         scalar_col += 1
-        if scalar_col > COLOR_BANDS:
+        if scalar_col > COLOR_TWOTONE:
             scalar_col = COLOR_BLACKWHITE
+    elif ch == 'n':
+        global colormap_type
+        colormap_type += 1
+        if colormap_type > 2:
+            colormap_type = 0
     elif ch == 'a':
         global frozen
         frozen = not frozen
+    elif ch == 'l':
+        global NLEVELS
+        global level
+        level += 1
+        if level > 3:
+            level = 0
+        NLEVELS = levels[level]
+
     elif ch == 'q':
         sys.exit()
 
@@ -496,11 +550,15 @@ if __name__ == '__main__':
     print("T/t:   increase/decrease simulation timestep\n")
     print("S/s:   increase/decrease hedgehog scaling\n")
     print("c:     toggle direction coloring on/off\n")
-    print("V/vy:   increase decrease fluid viscosity\n")
+    print("C:     toggle magnitude velocity coloring on/off\n")
+    print("z:     velocity coloring based on direction/magnitude\n")
+    print("V/v:   increase decrease fluid viscosity\n")
     print("x:     toggle drawing matter on/off\n")
     print("y:     toggle drawing hedgehogs on/off\n")
     print("m:     toggle thru scalar coloring\n")
+    print("n:     toggle thru what is displayed on the colormap (density, velocity, force)\n")
     print("a:     toggle the animation on/off\n")
+    print("l:     change number of colors in colormap (2**256, 20, 10, 5)  ")
     print("q:     quit\n\n")
 
     app = QtGui.QApplication(['Yo'])
