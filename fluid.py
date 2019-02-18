@@ -20,6 +20,8 @@ scale_velo_map = 5
 NLEVELS = 2^256
 levels = [2^256,20,10,5]
 level = 0
+hue = 0.0
+sat = 1.0
 
 scaling_factor_mag = 10
 clamp_factor_mag = 0.02
@@ -102,13 +104,10 @@ def solve():
     for i in range(0, DIM):
         for j in range(0, DIM):
             field0[:2, i, j] = field[:2, i, j]
-    # print(FFT(1,field0[:2,:]))
+
     field0cx = FFT(1, field0[0, :, :])
     field0cy = FFT(1, field0[1, :, :])
-    # print(field0cx[0,5])
-    # print(field0c.shape)
-    # print(field0.shape)
-    # field0[1,:] = FFT(1,field0[1,:])
+
 
     for i in range(0, int(DIM / 2 + 1), 1):
         y = 0.5 * i
@@ -128,15 +127,11 @@ def solve():
             field0cy[j, i] = complex((f * (-y * x / r * U[0] + (1 - y * y / r) * V[0])),
                                      (f * (-y * x / r * U[1] + (1 - y * y / r) * V[1])))
 
-            # field0c[0,i+(DIM+2)*  j].real = f*((1-x*x/r)*U[0] -x*y/r     *V[0]);
-            # field0c[0,i+1+(DIM+2)*j].real = f*((1-x*x/r)*U[1] -x*y/r     *V[1]);
-            # field0c[1,i+(DIM+2)*  j].imag = f*(-y*x/r*U[0]    +(1-y*y/r) *V[0]);
-            # field0c[1,i+1+(DIM+2)*j].imag = f*(-y*x/r*U[1]    +(1-y*y/r) *V[1]);
 
     field0[0, :, :] = FFT(-1, field0cx)
     field0[1, :, :] = FFT(-1, field0cy)
-    # field0[1,:DIM*DIM] = FFT(-1,field0[1,:])
-    f = 1.0  # (DIM*DIM)
+
+    f = 1.0
     for i in range(0, DIM):
         for j in range(0, DIM):
             field[:2, i, j] = f * field0[:2, i, j]
@@ -159,24 +154,82 @@ def diffuse_matter():
 
             j0 = int((DIM + (j0 % DIM)) % DIM)
             j1 = int((j0 + 1) % DIM)
-            # s = 1 - s
-            # t = 1 - t
+
             field[-1, i, j] = (1 - s) * ((1 - t) * field0[-1, i0, j0] + t * field0[-1, i0, j1]) + s * (
                         (1 - t) * field0[-1, i1, j0] + t * field0[-1, i1, j1])
 
 ### Visualization
 
 
-def rainbow(value):
+
+def hsv2rgb(h,s,v):
+    hint = int(h*6)
+    frac = 6*hint
+    lx = v * (1 - s)
+    ly = v * (1 - s*frac)
+    lz = v * ( 1 - s * ( 1 - frac))
+    if hint == 6:
+        RGB = [v, lz, lx]
+    elif hint == 1:
+        RGB = [ly,v,lx]
+    elif hint == 2:
+        RGB = [lx,v,lz]
+    elif hint == 3:
+        RGB = [lx,ly,v]
+    elif hint == 4:
+        RGB = [lz, lx, v]
+    else:
+        RGB = [v,lx,ly]
+    return RGB
+
+def rgb2hsv(r, g, b):
+    mx = max(r, g, b)
+    mn = min(r, g, b)
+    df = mx-mn
+    v = mx
+    if mx > 0.00001:
+        s = df/mx
+    else:
+        s = 0
+    if s == 0:
+        h = 0
+    else:
+        if r == mx:
+            h = (g-b)/df
+        elif g == mx:
+            h = 2 + (b-r)/df
+        else:
+            h = 4 + (r-g)/df
+        h = h/6
+        if h < 0:
+            h += 1
+
+    return h, s, v
+
+
+
+def rainbow(cv):
     dx = 0.8
-    if value<0 :
-        value=0
-    if value>1 :
-        value = 1
-    value = (6-2*dx)*value+dx
-    R = max(0.0,(3-np.fabs(value-4)-np.fabs(value-5))/2)
-    G = max(0.0,(4-np.fabs(value-2)-np.fabs(value-4))/2)
-    B = max(0.0,(3-np.fabs(value-1)-np.fabs(value-2))/2)
+    if cv<0 :
+        cv=0
+    if cv>1 :
+        cv = 1
+
+
+    cv = (6-2*dx)*cv+dx
+    R = max(0.0,(3-np.fabs(cv-4)-np.fabs(cv-5))/2)
+    G = max(0.0,(4-np.fabs(cv-2)-np.fabs(cv-4))/2)
+    B = max(0.0,(3-np.fabs(cv-1)-np.fabs(cv-2))/2)
+
+    if not hue == 0:
+        [h,s,v] = rgb2hsv(R,G,B)
+
+        h = (h+hue)%1
+    #     R,G,B = hsv2rgb(h,s,v)
+    R = sat*R
+    G = sat*G
+    B = sat*B
+
     return [R,G,B]
 
 def twotone(value):
@@ -192,7 +245,13 @@ def twotone(value):
     R = value * (c1[0]-c2[0]) + c2[0]
     G = value * (c1[1]-c2[1]) + c2[1]
     B = value * (c1[2]-c2[2]) + c2[2]
-
+    if not hue == 0:
+        [h,s,v] = rgb2hsv(R,G,B)
+        h = (h+hue)%1
+        R,G,B = hsv2rgb(h,s,v)
+    R = sat*R
+    G = sat*G
+    B = sat*B
     return [R,G,B]
 
 
@@ -276,8 +335,6 @@ def visualize():
 
         glBegin(GL_TRIANGLES)
         for i in range(0, DIM - 1):
-
-
             for j in range(0, DIM - 1):
 
                 px0 = wn + i * wn
@@ -443,6 +500,11 @@ def keyboard(key, x, y):
     elif ch == 'a':
         global frozen
         frozen = not frozen
+    elif ch == 'h':
+        global hue
+        hue += 1/6
+        if hue > 1.0:
+            hue = 0
     elif ch == 'l':
         global NLEVELS
         global level
@@ -470,7 +532,9 @@ def main():
     print("m:     toggle thru scalar coloring\n")
     print("n:     toggle thru what is displayed on the colormap (density, velocity, force)\n")
     print("a:     toggle the animation on/off\n")
-    print("l:     change number of colors in colormap (2**256, 20, 10, 5)  ")
+    print("l:     change number of colors in colormap (2**256, 20, 10, 5) \n ")
+    print("h:     change hue \n")
+
     print("q:     quit\n\n")
 
     glutInit(sys.argv)
