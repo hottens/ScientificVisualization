@@ -2,6 +2,9 @@
 import numpy as np
 import sys
 import math
+import pygame
+from OpenGL.GL import *
+from ctypes import *
 # import pyfftw
 # from pygame.locals import *
 
@@ -25,6 +28,9 @@ sat = 1.0
 
 scaling_factor_mag = 10
 clamp_factor_mag = 0.02
+
+vertices = []
+colors = []
 
 magdir = True
 vec_scale = 1000
@@ -58,7 +64,16 @@ def do_one_simulation_step():
         set_forces()
         solve()
         diffuse_matter()
-        glutPostRedisplay()
+        colormaptobe = np.zeros((50,50))
+        if colormap_type == 0:
+            colormaptobe = field[-1,:,:]
+        elif colormap_type == 1:
+            colormaptobe = scale_velo_map * np.sqrt(field[0,:,:]*field[0,:,:] + field[1,:,:]*field[1,:,:])
+        elif colormap_type == 2:
+            colormaptobe = np.sqrt(forces[0,:,:]*forces[0,:,:] + forces[1,:,:]*forces[1,:,:])
+
+        colors = makecolormap(colormaptobe)
+        # glutPostRedisplay()
 
 
 def set_forces():
@@ -276,7 +291,8 @@ def set_colormap(vy):
        RGB = rainbow(vy)
     elif scalar_col == COLOR_TWOTONE:
         RGB = twotone(vy)
-    glColor3f(RGB[0], RGB[1], RGB[2])
+    return RGB
+    # glColor3f(RGB[0], RGB[1], RGB[2])
 
 
 #direction_to_color: Set the current color by mapping a direction vector (x,y), using
@@ -321,8 +337,35 @@ def magnitude_to_color(x,y, colormaptype):
 
     glColor3f(RGB[0],RGB[1],RGB[2])
 
+def makecolormap(colormaptobe):
+    colormap = np.zeros((50,50,3))
+    for i in range(0,DIM):
+        for j in range(0,DIM):
+            colormap[i,j,:] = set_colormap(colormaptobe[i,j])
+    colors = []
+    for x in range(0,DIM-1):
+        for y in range(0,DIM-1):
+            colors+= [colormap[x,y,0],colormap[x,y,1],colormap[x,y,2]]
+            colors+= [colormap[x+1,y,0],colormap[x+1,y,1],colormap[x+1,y,2]]
+            colors+= [colormap[x,y+1,0],colormap[x,y+1,1],colormap[x,y+1,2]]
+            colors+= [colormap[x+1,y,0],colormap[x+1,y,1],colormap[x+1,y,2]]
+            colors+= [colormap[x,y+1,0],colormap[x,y+1,1],colormap[x,y+1,2]]
+            colors+= [colormap[x+1,y+1,0],colormap[x+1,y+1,1],colormap[x+1,y+1,2]]
+    return colors
 
 
+def makevertices():
+    vertices = []
+    step = 2.0/DIM
+    for x in range(0,DIM-1):
+        for y in range(0,DIM-1):
+            vertices += [-1.0 + x, -1.0 + y, 0.0]
+            vertices += [-1.0 + x + step, -1.0 + y, 0.0]
+            vertices += [-1.0 + x, -1.0 + y + step, 0.0]
+            vertices += [-1.0 + x + step, -1.0 + y, 0.0]
+            vertices += [-1.0 + x, -1.0 + y + step, 0.0]
+            vertices += [-1.0 + x + step , -1.0 + y + step, 0.0]
+    return vertices
 
 def visualize():
     wn = winWidth / (DIM + 1)
@@ -332,13 +375,13 @@ def visualize():
     if draw_smoke:
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
-        colormap = np.zeros((3,50,50))
+        colormaptobe = np.zeros((50,50))
         if colormap_type == 0:
-            colormap = field[-1,:,:]
+            colormaptobe = field[-1,:,:]
         elif colormap_type == 1:
-            colormap = scale_velo_map * np.sqrt(field[0,:,:]*field[0,:,:] + field[1,:,:]*field[1,:,:])
+            colormaptobe = scale_velo_map * np.sqrt(field[0,:,:]*field[0,:,:] + field[1,:,:]*field[1,:,:])
         elif colormap_type == 2:
-            colormap = np.sqrt(forces[0,:,:]*forces[0,:,:] + forces[1,:,:]*forces[1,:,:])
+            colormaptobe = np.sqrt(forces[0,:,:]*forces[0,:,:] + forces[1,:,:]*forces[1,:,:])
 
         glBegin(GL_TRIANGLES)
         for i in range(0, DIM - 1):
@@ -546,18 +589,63 @@ def main():
 
     print("q:     quit\n\n")
 
-    glutInit(sys.argv)
-    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH)
-    glutInitWindowSize(500, 500)
-    glutCreateWindow("Real-time smoke simulation and visualization")
-    glutDisplayFunc(display)
-    glutReshapeFunc(reshape)
-    glutIdleFunc(do_one_simulation_step)
-    glutKeyboardFunc(keyboard)
-    glutMotionFunc(drag)
-    init_simulation()
-    glutMainLoop()
+    # glutInit(sys.argv)
+    # glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH)
+    # glutInitWindowSize(500, 500)
+    # glutCreateWindow("Real-time smoke simulation and visualization")
+    # glutDisplayFunc(display)
+    # glutReshapeFunc(reshape)
+    # glutIdleFunc(do_one_simulation_step)
+    # glutKeyboardFunc(keyboard)
+    # glutMotionFunc(drag)
+    # init_simulation()
+    # glutMainLoop()
 
+
+
+    vertices = makevertices()
+    # print(type(vertices[0]))
+    colors = makecolormap(field[-1,:,:])
+
+    vertices_vbo = glGenBuffers(1)
+    glBindBuffer(GL_ARRAY_BUFFER, vertices_vbo)
+    glBufferData(GL_ARRAY_BUFFER, len(vertices) * 4, (c_float * len(vertices))(*vertices), GL_STATIC_DRAW)
+
+    colors_vbo = glGenBuffers(1)
+    glBindBuffer(GL_ARRAY_BUFFER, colors_vbo)
+    glBufferData(GL_ARRAY_BUFFER, len(colors) * 4, (c_float * len(colors))(*colors), GL_STATIC_DRAW)
+
+    running = True
+    while running:
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+
+        glClear(GL_COLOR_BUFFER_BIT)
+
+        glEnableClientState(GL_COLOR_ARRAY)
+
+        glBindBuffer(GL_ARRAY_BUFFER, vertices_vbo)
+        glVertexPointer(3, GL_FLOAT, 0, None)
+
+        glBindBuffer(GL_ARRAY_BUFFER, colors_vbo)
+        glColorPointer(3, GL_FLOAT, 0, None)
+
+
+        glDrawArrays(GL_TRIANGLES, 0, 6)
+
+        do_one_simulation_step()
+    pygame.display.flip()
+
+
+pygame.init()
+screen = pygame.display.set_mode((800, 600), pygame.OPENGL | pygame.DOUBLEBUF, 24)
+glViewport(0, 0, 800, 600)
+glClearColor(0.0, 0.5, 0.5, 1.0)
+glEnableClientState(GL_VERTEX_ARRAY)
+
+init_simulation()
 
 main()
 # print(np.fft.rfft2(np.zeros((2,16))).size)
