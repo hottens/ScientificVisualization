@@ -7,25 +7,7 @@ import math
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
-
-from PyQt4 import QtGui, QtCore
-from PyQt4.QtCore import QTimer, SIGNAL
-from PyQt4.QtOpenGL import *
-
-
-class MainWindow(QtGui.QWidget):
-    def __init__(self):
-        super(MainWindow, self).__init__()
-
-        self.widget = glWidget(self)
-
-        self.button = QtGui.QPushButton('Test', self)
-
-        mainLayout = QtGui.QHBoxLayout()
-        mainLayout.addWidget(self.widget)
-        mainLayout.addWidget(self.button)
-
-        self.setLayout(mainLayout)
+from OpenGL.GLUT import *
 
 # Visualization
 frozen = False
@@ -76,7 +58,7 @@ def do_one_simulation_step():
         set_forces()
         solve()
         diffuse_matter()
-        #glutPostRedisplay()
+        glutPostRedisplay()
 
 
 def set_forces():
@@ -122,10 +104,13 @@ def solve():
     for i in range(0, DIM):
         for j in range(0, DIM):
             field0[:2, i, j] = field[:2, i, j]
-
+    # print(FFT(1,field0[:2,:]))
     field0cx = FFT(1, field0[0, :, :])
     field0cy = FFT(1, field0[1, :, :])
-
+    # print(field0cx[0,5])
+    # print(field0c.shape)
+    # print(field0.shape)
+    # field0[1,:] = FFT(1,field0[1,:])
 
     for i in range(0, int(DIM / 2 + 1), 1):
         y = 0.5 * i
@@ -145,11 +130,15 @@ def solve():
             field0cy[j, i] = complex((f * (-y * x / r * U[0] + (1 - y * y / r) * V[0])),
                                      (f * (-y * x / r * U[1] + (1 - y * y / r) * V[1])))
 
+            # field0c[0,i+(DIM+2)*  j].real = f*((1-x*x/r)*U[0] -x*y/r     *V[0]);
+            # field0c[0,i+1+(DIM+2)*j].real = f*((1-x*x/r)*U[1] -x*y/r     *V[1]);
+            # field0c[1,i+(DIM+2)*  j].imag = f*(-y*x/r*U[0]    +(1-y*y/r) *V[0]);
+            # field0c[1,i+1+(DIM+2)*j].imag = f*(-y*x/r*U[1]    +(1-y*y/r) *V[1]);
 
     field0[0, :, :] = FFT(-1, field0cx)
     field0[1, :, :] = FFT(-1, field0cy)
-
-    f = 1.0
+    # field0[1,:DIM*DIM] = FFT(-1,field0[1,:])
+    f = 1.0  # (DIM*DIM)
     for i in range(0, DIM):
         for j in range(0, DIM):
             field[:2, i, j] = f * field0[:2, i, j]
@@ -172,13 +161,12 @@ def diffuse_matter():
 
             j0 = int((DIM + (j0 % DIM)) % DIM)
             j1 = int((j0 + 1) % DIM)
-
+            # s = 1 - s
+            # t = 1 - t
             field[-1, i, j] = (1 - s) * ((1 - t) * field0[-1, i0, j0] + t * field0[-1, i0, j1]) + s * (
                         (1 - t) * field0[-1, i1, j0] + t * field0[-1, i1, j1])
 
 ### Visualization
-
-
 
 def hsv2rgb(h,s,v):
     hint = int(h*6)
@@ -243,7 +231,7 @@ def rainbow(cv):
         [h,s,v] = rgb2hsv(R,G,B)
 
         h = (h+hue)%1
-    #     R,G,B = hsv2rgb(h,s,v)
+        R,G,B = hsv2rgb(h,s,v)
     R = sat*R
     G = sat*G
     B = sat*B
@@ -403,7 +391,7 @@ def visualize():
                 glVertex2f(wn + i * wn, hn + j * hn)
                 glVertex2f((wn + i * wn) + vec_scale * field[0, i, j], (hn + j * hn) + vec_scale * field[1, i, j])
                 # print((wn + i*wn) + vec_scale *field[0,i,j] - wn + i*wn)
-        print(count)
+        # print(count)
         glEnd()
 
 
@@ -464,7 +452,7 @@ def display():
     glLoadIdentity()
     visualize()
     glFlush()
-    #glutSwapBuffers()
+    glutSwapBuffers()
 
 
 def keyboard(key, x, y):
@@ -538,77 +526,7 @@ def keyboard(key, x, y):
         sys.exit()
 
 
-class glWidget(QGLWidget):
-
-    def __init__(self, parent=None):
-        QGLWidget.__init__(self, parent)
-        self.setMinimumSize(500, 500)
-        QtGui.qApp.installEventFilter(self)
-        # self.timer = QTimer()
-        # self.timer.timeout.connect(self.on_timer)
-        # self.timer.start(1000)
-
-    def paintGL(self):
-        print(forces)
-        self.repaint_grid()
-        self.update()
-
-    def repaint_grid(self):
-        do_one_simulation_step()
-        display()
-
-    def mousePressEvent(self, event):
-        self.__mousePressPos = None
-        self.__mouseMovePos = None
-        if event.button() == QtCore.Qt.LeftButton:
-            self.__mousePressPos = event.globalPos()
-            self.__mouseMovePos = event.globalPos()
-
-        super(glWidget, self).mousePressEvent(event)
-
-    def mouseMoveEvent(self, event):
-        if event.buttons() == QtCore.Qt.LeftButton:
-            # adjust offset from clicked point to origin of widget
-            currPos = self.mapToGlobal(self.pos())
-            globalPos = event.globalPos()
-            diff = globalPos - self.__mouseMovePos
-            newPos = self.mapFromGlobal(currPos + diff)
-            #self.move(newPos)
-            drag(diff.x(),diff.y())
-            # print("drag")
-
-            self.__mouseMovePos = globalPos
-
-        super(glWidget, self).mouseMoveEvent(event)
-
-    def mouseReleaseEvent(self, event):
-        if self.__mousePressPos is not None:
-            moved = event.globalPos() - self.__mousePressPos
-            if moved.manhattanLength() > 3:
-                event.ignore()
-                return
-
-        super(glWidget, self).mouseReleaseEvent(event)
-
-    def eventFilter(self, source, event):
-        if event.type() == QtCore.QEvent.KeyPress:
-            print('KeyPress: %s [%r]' % (event.key(), source))
-        return super(glWidget, self).eventFilter(source, event)
-
-    def initializeGL(self):
-        init_simulation()
-        glClearDepth(1.0)
-        glDepthFunc(GL_LESS)
-        glEnable(GL_DEPTH_TEST)
-        glShadeModel(GL_SMOOTH)
-
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
-        gluPerspective(45.0, 1.33, 0.1, 100.0)
-        glMatrixMode(GL_MODELVIEW)
-
-
-if __name__ == '__main__':
+def main():
     print("Fluid Flow Simulation and Visualization\n")
     print("=======================================\n")
     print("Click and drag the mouse to steer the flow!\n")
@@ -628,7 +546,18 @@ if __name__ == '__main__':
 
     print("q:     quit\n\n")
 
-    app = QtGui.QApplication(['Yo'])
-    window = MainWindow()
-    window.show()
-    app.exec_()
+    glutInit(sys.argv)
+    glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH)
+    glutInitWindowSize(500, 500)
+    glutCreateWindow("Real-time smoke simulation and visualization")
+    glutDisplayFunc(display)
+    glutReshapeFunc(reshape)
+    glutIdleFunc(do_one_simulation_step)
+    glutKeyboardFunc(keyboard)
+    glutMotionFunc(drag)
+    init_simulation()
+    glutMainLoop()
+
+
+main()
+# print(np.fft.rfft2(np.zeros((2,16))).size)
