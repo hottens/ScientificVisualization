@@ -342,6 +342,7 @@ def visualize():
 
 
     if draw_smoke:
+
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
         colormap = np.zeros((3,50,50))
         if colormap_type == 0:
@@ -392,6 +393,7 @@ def visualize():
 
     if draw_vecs:
         glBegin(GL_LINES)
+        count = 0
         for i in range(0, DIM):
             for j in range(0, DIM):
                 if magdir:
@@ -401,6 +403,7 @@ def visualize():
                 glVertex2f(wn + i * wn, hn + j * hn)
                 glVertex2f((wn + i * wn) + vec_scale * field[0, i, j], (hn + j * hn) + vec_scale * field[1, i, j])
                 # print((wn + i*wn) + vec_scale *field[0,i,j] - wn + i*wn)
+        print(count)
         glEnd()
 
 
@@ -537,15 +540,15 @@ def keyboard(key, x, y):
 
 class glWidget(QGLWidget):
 
-    def __init__(self, parent):
+    def __init__(self, parent=None):
         QGLWidget.__init__(self, parent)
         self.setMinimumSize(500, 500)
         QtGui.qApp.installEventFilter(self)
-        self.timer = QTimer()
-        self.timer.timeout.connect(self.on_timer)
-        self.timer.start(1000)
+        # self.timer = QTimer()
+        # self.timer.timeout.connect(self.on_timer)
+        # self.timer.start(1000)
 
-    def on_timer(self):
+    def paintGL(self):
         print(forces)
         self.repaint_grid()
         self.update()
@@ -572,7 +575,7 @@ class glWidget(QGLWidget):
             newPos = self.mapFromGlobal(currPos + diff)
             #self.move(newPos)
             drag(diff.x(),diff.y())
-            print("drag")
+            # print("drag")
 
             self.__mouseMovePos = globalPos
 
