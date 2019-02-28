@@ -5,6 +5,7 @@ import math
 import pygame
 from OpenGL.GL import *
 from ctypes import *
+import thorpy
 # import pyfftw
 # from pygame.locals import *
 
@@ -33,6 +34,9 @@ clamp_factor_mag = 0.02
 vertices = []
 colors = []
 
+
+clamp_color = [0,1]
+
 magdir = True
 vec_scale = 5
 draw_smoke = True
@@ -40,7 +44,7 @@ draw_vecs = False
 COLOR_BLACKWHITE = 0
 COLOR_RAINBOW = 1
 COLOR_TWOTONE = 2
-scalar_col = 1
+scalar_col = 0
 
 # Simulation
 DIM = 50
@@ -234,10 +238,11 @@ def rgb2hsv(r, g, b):
 
 def rainbow(cv):
     dx = 0.8
-    if cv<0 :
-        cv=0
-    if cv>1 :
-        cv = 1
+    global clamp_color
+    if cv<clamp_color[0] :
+        cv=clamp_color[0]
+    if cv>clamp_color[1] :
+        cv = clamp_color[1]
 
 
     cv = (6-2*dx)*cv+dx
@@ -250,22 +255,22 @@ def rainbow(cv):
 
         h = (h+hue)%1
         R,G,B = hsv2rgb(h,s,v)
-    R = (2*sat*R)-1
-    G = (2*sat*G)-1
-    B = (2*sat*B)-1
+    R = sat*R
+    G = sat*G
+    B = sat*B
 
     return [R,G,B]
 
 def twotone(value):
     c1= [255/256,255/256,51/256]
     c2 =  [0.0,51/256,255/256]
+    global clamp_color
+    if value<clamp_color[0] :
+        value=clamp_color[0]
+    if value>clamp_color[1] :
+        value = clamp_color[1]
 
-    if value<0 :
-        value=0
-    if value>1 :
-        value = 1
-
-
+# nog scalen!!
 
 
     R = value * (c1[0]-c2[0]) + c2[0]
@@ -275,9 +280,9 @@ def twotone(value):
         [h,s,v] = rgb2hsv(R,G,B)
         h = (h+hue)%1
         R,G,B = hsv2rgb(h,s,v)
-    R = (2*sat*R)-1
-    G = (2*sat*G)-1
-    B = (2*sat*B)-1
+    R = sat*R
+    G = sat*G
+    B = sat*B
 
 
     return [R,G,B]
@@ -549,7 +554,7 @@ def keyboard(key):
         draw_vecs = not draw_vecs
         if not draw_vecs:
             draw_smoke = True
-    elif key == pygame.K_m:
+    elif key == pygame.K_i:
         global scalar_col
         scalar_col += 1
         if scalar_col > COLOR_TWOTONE:
@@ -562,6 +567,22 @@ def keyboard(key):
     elif key == pygame.K_f:
         global frozen
         frozen = not frozen
+    elif key == pygame.K_1:
+        global clamp_color
+        clamp_color[0] += 0.1
+        clamp_color[0] = max(clamp_color[0],0)
+    elif key == pygame.K_2:
+        global clamp_color
+        clamp_color[0] -= 0.1
+        clamp_color[0] = max(clamp_color[0],0)
+    elif key == pygame.K_3:
+        global clamp_color
+        clamp_color[1] += 0.1
+        clamp_color[1] = min(clamp_color[1],1)
+    elif key == pygame.K_4:
+        global clamp_color
+        clamp_color[1] -= 0.1
+        clamp_color[1] = min(clamp_color[1],1)
     elif key == pygame.K_h:
         global hue
         hue += 1/6
@@ -613,6 +634,8 @@ def main():
     # glutMotionFunc(drag)
     # init_simulation()
     # glutMainLoop()
+
+
 
     clock = pygame.time.Clock()
 

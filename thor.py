@@ -21,7 +21,7 @@ menu = thorpy.Menu(box)
 for element in menu.get_population():
     element.surface = screen
 #use the elements normally...
-box.set_topleft((100,100))
+box.set_topright((100,100))
 box.blit()
 box.update()
 
