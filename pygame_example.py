@@ -1,6 +1,8 @@
 import pygame
 from OpenGL.GL import *
 from ctypes import *
+import fluid2 as fl
+
 
 pygame.init()
 screen = pygame.display.set_mode((800, 600), pygame.OPENGL | pygame.DOUBLEBUF, 24)
@@ -10,6 +12,10 @@ glEnableClientState(GL_VERTEX_ARRAY)
 
 vertices = [-1.0, 0.0, 1.0, -1.0, -1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]
 colors = [1.0, 0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0]
+
+
+
+
 
 vertices_vbo = glGenBuffers(1)
 glBindBuffer(GL_ARRAY_BUFFER, vertices_vbo)

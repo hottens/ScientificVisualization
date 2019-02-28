@@ -25,6 +25,7 @@ levels = [2^256,20,10,5]
 level = 0
 hue = 0.0
 sat = 1.0
+dragbool = False
 
 scaling_factor_mag = 10
 clamp_factor_mag = 0.02
@@ -34,8 +35,8 @@ colors = []
 
 magdir = True
 vec_scale = 1000
-draw_smoke = False
-draw_vecs = True
+draw_smoke = True
+draw_vecs = False
 COLOR_BLACKWHITE = 0
 COLOR_RAINBOW = 1
 COLOR_TWOTONE = 2
@@ -71,8 +72,10 @@ def do_one_simulation_step():
             colormaptobe = scale_velo_map * np.sqrt(field[0,:,:]*field[0,:,:] + field[1,:,:]*field[1,:,:])
         elif colormap_type == 2:
             colormaptobe = np.sqrt(forces[0,:,:]*forces[0,:,:] + forces[1,:,:]*forces[1,:,:])
-
+        # print(colormaptobe)
+        global colors
         colors = makecolormap(colormaptobe)
+        # return colors
         # glutPostRedisplay()
 
 
@@ -247,9 +250,9 @@ def rainbow(cv):
 
         h = (h+hue)%1
         R,G,B = hsv2rgb(h,s,v)
-    R = sat*R
-    G = sat*G
-    B = sat*B
+    R = (2*sat*R)-1
+    G = (2*sat*G)-1
+    B = (2*sat*B)-1
 
     return [R,G,B]
 
@@ -257,11 +260,13 @@ def twotone(value):
     c1= [255/256,255/256,51/256]
     c2 =  [0.0,51/256,255/256]
 
-
     if value<0 :
         value=0
     if value>1 :
         value = 1
+
+
+
 
     R = value * (c1[0]-c2[0]) + c2[0]
     G = value * (c1[1]-c2[1]) + c2[1]
@@ -270,9 +275,11 @@ def twotone(value):
         [h,s,v] = rgb2hsv(R,G,B)
         h = (h+hue)%1
         R,G,B = hsv2rgb(h,s,v)
-    R = sat*R
-    G = sat*G
-    B = sat*B
+    R = (2*sat*R)-1
+    G = (2*sat*G)-1
+    B = (2*sat*B)-1
+
+
     return [R,G,B]
 
 
@@ -288,7 +295,7 @@ def set_colormap(vy):
     if scalar_col==COLOR_BLACKWHITE:
         RGB.fill(vy)
     elif scalar_col==COLOR_RAINBOW:
-       RGB = rainbow(vy)
+        RGB = rainbow(vy)
     elif scalar_col == COLOR_TWOTONE:
         RGB = twotone(vy)
     return RGB
@@ -342,29 +349,31 @@ def makecolormap(colormaptobe):
     for i in range(0,DIM):
         for j in range(0,DIM):
             colormap[i,j,:] = set_colormap(colormaptobe[i,j])
-    colors = []
+    c = []
     for x in range(0,DIM-1):
         for y in range(0,DIM-1):
-            colors+= [colormap[x,y,0],colormap[x,y,1],colormap[x,y,2]]
-            colors+= [colormap[x+1,y,0],colormap[x+1,y,1],colormap[x+1,y,2]]
-            colors+= [colormap[x,y+1,0],colormap[x,y+1,1],colormap[x,y+1,2]]
-            colors+= [colormap[x+1,y,0],colormap[x+1,y,1],colormap[x+1,y,2]]
-            colors+= [colormap[x,y+1,0],colormap[x,y+1,1],colormap[x,y+1,2]]
-            colors+= [colormap[x+1,y+1,0],colormap[x+1,y+1,1],colormap[x+1,y+1,2]]
-    return colors
+            c += [colormap[x,y,0],colormap[x,y,1],colormap[x,y,2]]
+            c += [colormap[x,y+1,0],colormap[x,y+1,1],colormap[x,y+1,2]]
+            c += [colormap[x+1,y+1,0],colormap[x+1,y+1,1],colormap[x+1,y+1,2]]
+            c += [colormap[x,y,0],colormap[x,y,1],colormap[x,y,2]]
+            c += [colormap[x+1,y+1,0],colormap[x+1,y+1,1],colormap[x+1,y+1,2]]
+            c += [colormap[x+1,y,0],colormap[x+1,y,1],colormap[x+1,y,2]]
+    # print(c)
+    return c
 
 
 def makevertices():
     vertices = []
-    step = 2.0/DIM
-    for x in range(0,DIM-1):
-        for y in range(0,DIM-1):
-            vertices += [-1.0 + x, -1.0 + y, 0.0]
-            vertices += [-1.0 + x + step, -1.0 + y, 0.0]
-            vertices += [-1.0 + x, -1.0 + y + step, 0.0]
-            vertices += [-1.0 + x + step, -1.0 + y, 0.0]
-            vertices += [-1.0 + x, -1.0 + y + step, 0.0]
-            vertices += [-1.0 + x + step , -1.0 + y + step, 0.0]
+    for i in range(49):
+        for j in range(49):
+            p0 = [i, j, 0]
+            p1 = [i, j+1, 0]
+            p2 = [i+1, j+1, 0]
+            p3 = [i+1, j, 0]
+            vertices += p0 + p1 + p2 + p0 + p2 + p3
+    vertices = np.array(vertices)
+    vertices = vertices/(49/2)-1
+    vertices = vertices.tolist()
     return vertices
 
 def visualize():
@@ -477,7 +486,7 @@ def drag(mx, my):
     drag.lmx = mx
     drag.lmy = my
     # print([dx, dy])
-    # print(forces)
+    # print(colors)
 
 
 def reshape(w, h):
@@ -498,66 +507,67 @@ def display():
     glutSwapBuffers()
 
 
-def keyboard(key, x, y):
-    ch = key.decode("utf-8")
-    if ch == 't':
+def keyboard(key):
+    #ch = key.decode("utf-8")
+    print(key)
+    if key == pygame.K_t:
         global dt
         dt = dt - 0.001
 
-    elif ch == 'T':
+    elif key == pygame.K_y:
         dt += 0.001
 
-    elif ch == 'c':
+    elif key == pygame.K_c:
         global color_dir
         color_dir = not color_dir
 
-    elif ch == 'C':
+    elif key == pygame.K_v:
         global color_mag_v
         color_mag_v += 1
         if color_mag_v > 2:
             color_mag_v = 0
-    elif ch == 'z':
+    elif key == pygame.K_m:
         global magdir
         magdir = not magdir
-    elif ch == 'S':
+    elif key == pygame.K_a:
         global vec_scale
         vec_scale *= 1.2
-    elif ch == 's':
+    elif key == pygame.K_s:
         vec_scale *= 0.8
-    elif ch == 'V':
+    elif key == pygame.K_z:
         global visc
         visc *= 5
-    elif ch == 'v':
+    elif key == pygame.K_x:
         visc *= 0.2
-    elif ch == 'x':
+    elif key == pygame.K_n:
         global draw_smoke
         global draw_vecs
         draw_smoke = not draw_smoke
         if not draw_smoke:
             draw_vecs = True
-    elif ch == 'y':
+    elif key == pygame.K_u:
         draw_vecs = not draw_vecs
         if not draw_vecs:
             draw_smoke = True
-    elif ch == 'm':
+    elif key == pygame.K_m:
         global scalar_col
         scalar_col += 1
         if scalar_col > COLOR_TWOTONE:
             scalar_col = COLOR_BLACKWHITE
-    elif ch == 'n':
+    elif key == pygame.K_j:
         global colormap_type
         colormap_type += 1
         if colormap_type > 2:
             colormap_type = 0
-    elif ch == 'a':
+    elif key == pygame.K_f:
         global frozen
         frozen = not frozen
-    elif ch == 'h':
+    elif key == pygame.K_h:
         global hue
         hue += 1/6
         if hue > 1.0:
             hue = 0
-    elif ch == 'l':
+    elif key == pygame.K_l:
         global NLEVELS
         global level
         level += 1
@@ -565,7 +575,7 @@ def keyboard(key, x, y):
             level = 0
         NLEVELS = levels[level]
 
-    elif ch == 'q':
+    elif key == pygame.K_q:
         sys.exit()
 
 
@@ -601,12 +611,14 @@ def main():
     # init_simulation()
     # glutMainLoop()
 
-
+    clock = pygame.time.Clock()
 
     vertices = makevertices()
     # print(type(vertices[0]))
+    global colors
     colors = makecolormap(field[-1,:,:])
-
+    # print(colors)
+    # colors = vertices
     vertices_vbo = glGenBuffers(1)
     glBindBuffer(GL_ARRAY_BUFFER, vertices_vbo)
     glBufferData(GL_ARRAY_BUFFER, len(vertices) * 4, (c_float * len(vertices))(*vertices), GL_STATIC_DRAW)
@@ -617,31 +629,49 @@ def main():
 
     running = True
     while running:
-
+        clock.tick(60)
+        global dragbool
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    dragbool = True
 
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1:
+                    dragbool = False
+            if event.type == pygame.KEYDOWN:
+                keyboard(event.key)
+        if dragbool == True:
+            mx, my = event.pos
+            # print("drag")
+            drag(mx,my)
+
+        # print(colors)
         glClear(GL_COLOR_BUFFER_BIT)
-
+        do_one_simulation_step()
         glEnableClientState(GL_COLOR_ARRAY)
 
         glBindBuffer(GL_ARRAY_BUFFER, vertices_vbo)
         glVertexPointer(3, GL_FLOAT, 0, None)
 
         glBindBuffer(GL_ARRAY_BUFFER, colors_vbo)
+        glBufferData(GL_ARRAY_BUFFER, len(colors) * 4, (c_float * len(colors))(*colors), GL_STATIC_DRAW)
         glColorPointer(3, GL_FLOAT, 0, None)
 
 
-        glDrawArrays(GL_TRIANGLES, 0, 6)
+        glDrawArrays(GL_TRIANGLES, 0, 43218)
 
-        do_one_simulation_step()
-    pygame.display.flip()
+
+
+
+        pygame.display.flip()
 
 
 pygame.init()
-screen = pygame.display.set_mode((800, 600), pygame.OPENGL | pygame.DOUBLEBUF, 24)
-glViewport(0, 0, 800, 600)
+screen = pygame.display.set_mode((winWidth, winHeight), pygame.OPENGL | pygame.DOUBLEBUF, 24)
+glViewport(0, 0, winWidth, winHeight)
 glClearColor(0.0, 0.5, 0.5, 1.0)
 glEnableClientState(GL_VERTEX_ARRAY)
 
