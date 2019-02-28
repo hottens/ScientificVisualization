@@ -34,13 +34,13 @@ vertices = []
 colors = []
 
 magdir = True
-vec_scale = 1000
+vec_scale = 5
 draw_smoke = True
 draw_vecs = False
 COLOR_BLACKWHITE = 0
 COLOR_RAINBOW = 1
 COLOR_TWOTONE = 2
-scalar_col = 0
+scalar_col = 1
 
 # Simulation
 DIM = 50
@@ -286,7 +286,7 @@ def twotone(value):
 #set_colormap: Sets three different types of colormaps
 def set_colormap(vy):
     RGB = np.zeros(3)
-
+    global scalar_col
     if not NLEVELS == 2^256:
         vy = vy * NLEVELS
         vy = int(vy)
@@ -599,6 +599,9 @@ def main():
 
     print("q:     quit\n\n")
 
+    wn = winWidth / (DIM + 1)
+    hn = winHeight / (DIM + 1)
+
     # glutInit(sys.argv)
     # glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH)
     # glutInitWindowSize(500, 500)
@@ -626,6 +629,8 @@ def main():
     colors_vbo = glGenBuffers(1)
     glBindBuffer(GL_ARRAY_BUFFER, colors_vbo)
     glBufferData(GL_ARRAY_BUFFER, len(colors) * 4, (c_float * len(colors))(*colors), GL_STATIC_DRAW)
+
+
 
     running = True
     while running:
@@ -655,13 +660,28 @@ def main():
 
         glBindBuffer(GL_ARRAY_BUFFER, vertices_vbo)
         glVertexPointer(3, GL_FLOAT, 0, None)
+        if draw_smoke :
+            glBindBuffer(GL_ARRAY_BUFFER, colors_vbo)
+            glBufferData(GL_ARRAY_BUFFER, len(colors) * 4, (c_float * len(colors))(*colors), GL_STATIC_DRAW)
+            glColorPointer(3, GL_FLOAT, 0, None)
 
-        glBindBuffer(GL_ARRAY_BUFFER, colors_vbo)
-        glBufferData(GL_ARRAY_BUFFER, len(colors) * 4, (c_float * len(colors))(*colors), GL_STATIC_DRAW)
-        glColorPointer(3, GL_FLOAT, 0, None)
 
+            glDrawArrays(GL_TRIANGLES, 0, 43218)
+        if draw_vecs:
+            glBegin(GL_LINES)
+            count = 0
+            for i in range(0, DIM):
+                for j in range(0, DIM):
 
-        glDrawArrays(GL_TRIANGLES, 0, 43218)
+                    if magdir:
+                        magnitude_to_color(field[0, i, j], field[1, i, j], color_mag_v)
+                    else:
+                        direction_to_color(field[0, i, j], field[1, i, j], color_dir)
+                    glVertex2f(((i/(49/2))-1), ((j/(49/2))-1))
+                    glVertex2f(((i/(49/2))-1) + vec_scale * field[0, i, j], ( ((j/(49/2))-1)) + vec_scale * field[1, i, j])
+                    # print((wn + i*wn) + vec_scale *field[0,i,j] - wn + i*wn)
+            # print(count)
+            glEnd()
 
 
 
