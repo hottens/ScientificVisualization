@@ -2,6 +2,7 @@
 import numpy as np
 import sys
 import math
+import simulation
 import pygame
 from OpenGL.GL import *
 from ctypes import *
@@ -12,6 +13,10 @@ import thorpy
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
+
+# Simulation
+DIM = 50
+sim = simulation.Simulation(DIM)
 
 # Visualization
 frozen = False
@@ -46,147 +51,6 @@ COLOR_BLACKWHITE = 0
 COLOR_RAINBOW = 1
 COLOR_TWOTONE = 2
 scalar_col = 0
-
-# Simulation
-DIM = 50
-dt = 0.4
-visc = 0.01
-
-
-def init_simulation():
-    global field
-    global field0
-    global field0c
-    global forces
-
-    field = np.zeros((3, DIM, DIM))  # vx, vy, rho
-    field0 = np.zeros((3, DIM, DIM))
-    field0c = np.zeros((2, int(DIM * (DIM / 2 + 1))), dtype=np.complex_)  # vx0, vy0, rho0
-    forces = np.zeros((2, DIM, DIM))  # fx, fy
-
-
-def do_one_simulation_step():
-    if not frozen:
-        set_forces()
-        solve()
-        diffuse_matter()
-        colormaptobe = np.zeros((50, 50))
-        if colormap_type == 0:
-            colormaptobe = field[-1, :, :]
-        elif colormap_type == 1:
-            colormaptobe = scale_velo_map * np.sqrt(field[0, :, :] * field[0, :, :] + field[1, :, :] * field[1, :, :])
-        elif colormap_type == 2:
-            colormaptobe = np.sqrt(forces[0, :, :] * forces[0, :, :] + forces[1, :, :] * forces[1, :, :])
-        # print(colormaptobe)
-        global colors
-        colors = makecolormap(colormaptobe)
-        # return colors
-        # glutPostRedisplay()
-
-
-def set_forces():
-    field0[-1, :, :] = field[-1, :, :] * 0.9
-    forces[:2, :, :] = forces[:2, :, :] * 0.85
-    field0[:2, :, :] = forces[:2, :, :]
-
-
-def clamp(x):
-    return int(x) if x >= 0.0 else int(x - 1)
-
-
-def FFT(direction, v):
-    return np.fft.rfft2(v) if direction == 1 else np.fft.irfft2(v)
-
-
-def solve():
-    field[:2, :, :] += dt * field0[:2, :, :]
-    field0[:2, :, :] = field[:2, :, :]
-    U = np.zeros(2)
-    V = np.zeros(2)
-
-    for i in range(0, DIM):
-        for j in range(0, DIM):
-            x = (0.5 + i) / DIM
-            y = (0.5 + j) / DIM
-            x0 = DIM * (x - dt * field0[0, i, j]) - 0.5
-            y0 = DIM * (y - dt * field0[1, i, j]) - 0.5
-            i0 = clamp(x0)
-            s = x0 - i0
-            i0 = int((DIM + (i0 % DIM)) % DIM)
-            i1 = int((i0 + 1) % DIM)
-
-            j0 = clamp(y0)
-            t = y0 - j0
-            j0 = int((DIM + (j0 % DIM)) % DIM)
-            j1 = int((j0 + 1) % DIM)
-            s = 1 - s
-            t = 1 - t
-            field[:2, i, j] = (1 - s) * ((1 - t) * field0[:2, i0, j0] + t * field0[:2, i0, j1]) + s * (
-                    (1 - t) * field0[:2, i1, j0] + t * field0[:2, i1, j1])
-    for i in range(0, DIM):
-        for j in range(0, DIM):
-            field0[:2, i, j] = field[:2, i, j]
-    # print(FFT(1,field0[:2,:]))
-    field0cx = FFT(1, field0[0, :, :])
-    field0cy = FFT(1, field0[1, :, :])
-    # print(field0cx[0,5])
-    # print(field0c.shape)
-    # print(field0.shape)
-    # field0[1,:] = FFT(1,field0[1,:])
-
-    for i in range(0, int(DIM / 2 + 1), 1):
-        y = 0.5 * i
-        for j in range(0, DIM):
-            x = j if j <= DIM / 2 else j - DIM
-            r = x * x + y * y
-            if r == 0.0:
-                continue
-            f = np.exp(-r * dt * visc)
-            U[0] = field0cx[j, i].real
-            V[0] = field0cy[j, i].real
-            U[1] = field0cx[j, i].imag
-            V[1] = field0cy[j, i].imag
-
-            field0cx[j, i] = complex(f * ((1 - x * x / r) * U[0] - x * y / r * V[0]),
-                                     f * ((1 - x * x / r) * U[1] - x * y / r * V[1]))
-            field0cy[j, i] = complex((f * (-y * x / r * U[0] + (1 - y * y / r) * V[0])),
-                                     (f * (-y * x / r * U[1] + (1 - y * y / r) * V[1])))
-
-            # field0c[0,i+(DIM+2)*  j].real = f*((1-x*x/r)*U[0] -x*y/r     *V[0]);
-            # field0c[0,i+1+(DIM+2)*j].real = f*((1-x*x/r)*U[1] -x*y/r     *V[1]);
-            # field0c[1,i+(DIM+2)*  j].imag = f*(-y*x/r*U[0]    +(1-y*y/r) *V[0]);
-            # field0c[1,i+1+(DIM+2)*j].imag = f*(-y*x/r*U[1]    +(1-y*y/r) *V[1]);
-
-    field0[0, :, :] = FFT(-1, field0cx)
-    field0[1, :, :] = FFT(-1, field0cy)
-    # field0[1,:DIM*DIM] = FFT(-1,field0[1,:])
-    f = 1.0  # (DIM*DIM)
-    for i in range(0, DIM):
-        for j in range(0, DIM):
-            field[:2, i, j] = f * field0[:2, i, j]
-
-
-def diffuse_matter():
-    for i in range(0, DIM):
-        for j in range(0, DIM):
-            x = (0.5 + i) / DIM
-            y = (0.5 + j) / DIM
-            x0 = DIM * (x - dt * field[0, i, j]) - 0.5
-            y0 = DIM * (y - dt * field[1, i, j]) - 0.5
-            i0 = clamp(x0)
-            s = x0 - i0
-            i0 = int((DIM + (i0 % DIM)) % DIM)
-            i1 = int((i0 + 1) % DIM)
-
-            j0 = clamp(y0)
-            t = y0 - j0
-
-            j0 = int((DIM + (j0 % DIM)) % DIM)
-            j1 = int((j0 + 1) % DIM)
-            # s = 1 - s
-            # t = 1 - t
-            field[-1, i, j] = (1 - s) * ((1 - t) * field0[-1, i0, j0] + t * field0[-1, i0, j1]) + s * (
-                    (1 - t) * field0[-1, i1, j0] + t * field0[-1, i1, j1])
 
 
 ### Visualization
@@ -394,9 +258,9 @@ def visualize():
         if colormap_type == 0:
             colormaptobe = field[-1, :, :]
         elif colormap_type == 1:
-            colormaptobe = scale_velo_map * np.sqrt(field[0, :, :] * field[0, :, :] + field[1, :, :] * field[1, :, :])
+            colormaptobe = scale_velo_map * np.sqrt(sim.field[0, :, :] * sim.field[0, :, :] + sim.field[1, :, :] * sim.field[1, :, :])
         elif colormap_type == 2:
-            colormaptobe = np.sqrt(forces[0, :, :] * forces[0, :, :] + forces[1, :, :] * forces[1, :, :])
+            colormaptobe = np.sqrt(sim.forces[0, :, :] * sim.forces[0, :, :] + sim.forces[1, :, :] * sim.forces[1, :, :])
 
         glBegin(GL_TRIANGLES)
         for i in range(0, DIM - 1):
@@ -442,11 +306,11 @@ def visualize():
         for i in range(0, DIM):
             for j in range(0, DIM):
                 if magdir:
-                    magnitude_to_color(field[0, i, j], field[1, i, j], color_mag_v)
+                    magnitude_to_color(sim.field[0, i, j], sim.field[1, i, j], color_mag_v)
                 else:
-                    direction_to_color(field[0, i, j], field[1, i, j], color_dir)
+                    direction_to_color(sim.field[0, i, j], sim.field[1, i, j], color_dir)
                 glVertex2f(wn + i * wn, hn + j * hn)
-                glVertex2f((wn + i * wn) + vec_scale * field[0, i, j], (hn + j * hn) + vec_scale * field[1, i, j])
+                glVertex2f((wn + i * wn) + vec_scale * sim.field[0, i, j], (hn + j * hn) + sim.vec_scale * field[1, i, j])
                 # print((wn + i*wn) + vec_scale *field[0,i,j] - wn + i*wn)
         # print(count)
         glEnd()
@@ -465,8 +329,8 @@ def drag(mx, my):
         lmx = drag.lmx
         lmy = drag.lmy
 
-    xi = clamp((DIM + 1) * (mx / winWidth))
-    yi = clamp((DIM + 1) * ((winHeight - my) / winHeight))
+    xi = simulation.clamp((DIM + 1) * (mx / winWidth))
+    yi = simulation.clamp((DIM + 1) * ((winHeight - my) / winHeight))
     X = int(xi)
     Y = int(yi)
 
@@ -485,9 +349,9 @@ def drag(mx, my):
     if not length == 0.0:
         dx = dx * (0.3 / length)
         dy = dy * (0.3 / length)
-    forces[0, X, Y] += dx
-    forces[1, X, Y] += dy
-    field[-1, X, Y] = 10.0
+    sim.forces[0, X, Y] += dx
+    sim.forces[1, X, Y] += dy
+    sim.field[-1, X, Y] = 10.0
     drag.lmx = mx
     drag.lmy = my
     # print([dx, dy])
@@ -515,11 +379,10 @@ def display():
 def keyboard(key):
     global clamp_color
     if key == pygame.K_t:
-        global dt
-        dt = dt - 0.001
+        sim.dt -= 0.001
 
     elif key == pygame.K_y:
-        dt += 0.001
+        sim.dt += 0.001
 
     elif key == pygame.K_c:
         global color_dir
@@ -539,10 +402,9 @@ def keyboard(key):
     elif key == pygame.K_s:
         vec_scale *= 0.8
     elif key == pygame.K_z:
-        global visc
-        visc *= 5
+        sim.visc *= 5
     elif key == pygame.K_x:
-        visc *= 0.2
+        sim.visc *= 0.2
     elif key == pygame.K_n:
         global draw_smoke
         global draw_vecs
@@ -604,7 +466,6 @@ def drawGlyph(x, y, vx, vy, color, size):
     glVertex2f(x + (size/DIM) * vy, y - (size/DIM) * vx)
 
 
-
 def main():
     print("Fluid Flow Simulation and Visualization\n")
     print("=======================================\n")
@@ -645,7 +506,7 @@ def main():
     vertices = makevertices()
     # print(type(vertices[0]))
     global colors
-    colors = makecolormap(field[-1, :, :])
+    colors = makecolormap(sim.field[-1, :, :])
 
     vertices_vbo = glGenBuffers(1)
     glBindBuffer(GL_ARRAY_BUFFER, vertices_vbo)
@@ -678,7 +539,7 @@ def main():
 
         # print(colors)
         glClear(GL_COLOR_BUFFER_BIT)
-        do_one_simulation_step()
+        sim.do_one_simulation_step(frozen)
         glEnableClientState(GL_COLOR_ARRAY)
 
         glBindBuffer(GL_ARRAY_BUFFER, vertices_vbo)
@@ -709,15 +570,14 @@ def main():
                 for j in range(DIM):
                     x = i / ((DIM - 1) / 2) - 1
                     y = j / ((DIM - 1) / 2) - 1
-                    vx = field[0, i, j]
-                    vy = field[1, i, j]
+                    vx = sim.field[0, i, j]
+                    vy = sim.field[1, i, j]
                     dir = math.atan2(vy, vx) / 3.1415927 + 1
                     color = [1, 1, 1]
                     size = np.sqrt(vx * vx + vy * vy)
                     drawGlyph(x, y, vx, vy, color, size)
             glEnd()
 
-        do_one_simulation_step()
         pygame.display.flip()
 
 
@@ -727,7 +587,6 @@ glViewport(0, 0, winWidth, winHeight)
 glClearColor(0.0, 0.5, 0.5, 1.0)
 glEnableClientState(GL_VERTEX_ARRAY)
 
-init_simulation()
 
 main()
 # print(np.fft.rfft2(np.zeros((2,16))).size)
