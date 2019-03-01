@@ -21,8 +21,8 @@ color_dir = False
 color_mag_v = 0
 colormap_type = 0
 scale_velo_map = 5
-NLEVELS = 2^256
-levels = [2^256,20,10,5]
+NLEVELS = 2 ^ 256
+levels = [2 ^ 256, 20, 10, 5]
 level = 0
 hue = 0.0
 sat = 1.0
@@ -34,13 +34,14 @@ clamp_factor_mag = 0.02
 vertices = []
 colors = []
 
-
-clamp_color = [0,1]
+clamp_color = [0, 1]
 
 magdir = True
 vec_scale = 5
 draw_smoke = True
 draw_vecs = False
+draw_glyphs = True
+n_glyphs = 16
 COLOR_BLACKWHITE = 0
 COLOR_RAINBOW = 1
 COLOR_TWOTONE = 2
@@ -69,13 +70,13 @@ def do_one_simulation_step():
         set_forces()
         solve()
         diffuse_matter()
-        colormaptobe = np.zeros((50,50))
+        colormaptobe = np.zeros((50, 50))
         if colormap_type == 0:
-            colormaptobe = field[-1,:,:]
+            colormaptobe = field[-1, :, :]
         elif colormap_type == 1:
-            colormaptobe = scale_velo_map * np.sqrt(field[0,:,:]*field[0,:,:] + field[1,:,:]*field[1,:,:])
+            colormaptobe = scale_velo_map * np.sqrt(field[0, :, :] * field[0, :, :] + field[1, :, :] * field[1, :, :])
         elif colormap_type == 2:
-            colormaptobe = np.sqrt(forces[0,:,:]*forces[0,:,:] + forces[1,:,:]*forces[1,:,:])
+            colormaptobe = np.sqrt(forces[0, :, :] * forces[0, :, :] + forces[1, :, :] * forces[1, :, :])
         # print(colormaptobe)
         global colors
         colors = makecolormap(colormaptobe)
@@ -94,7 +95,6 @@ def clamp(x):
 
 
 def FFT(direction, v):
-
     return np.fft.rfft2(v) if direction == 1 else np.fft.irfft2(v)
 
 
@@ -122,7 +122,7 @@ def solve():
             s = 1 - s
             t = 1 - t
             field[:2, i, j] = (1 - s) * ((1 - t) * field0[:2, i0, j0] + t * field0[:2, i0, j1]) + s * (
-                        (1 - t) * field0[:2, i1, j0] + t * field0[:2, i1, j1])
+                    (1 - t) * field0[:2, i1, j0] + t * field0[:2, i1, j1])
     for i in range(0, DIM):
         for j in range(0, DIM):
             field0[:2, i, j] = field[:2, i, j]
@@ -186,120 +186,119 @@ def diffuse_matter():
             # s = 1 - s
             # t = 1 - t
             field[-1, i, j] = (1 - s) * ((1 - t) * field0[-1, i0, j0] + t * field0[-1, i0, j1]) + s * (
-                        (1 - t) * field0[-1, i1, j0] + t * field0[-1, i1, j1])
+                    (1 - t) * field0[-1, i1, j0] + t * field0[-1, i1, j1])
+
 
 ### Visualization
 
-def hsv2rgb(h,s,v):
-    hint = int(h*6)
-    frac = 6*hint
+def hsv2rgb(h, s, v):
+    hint = int(h * 6)
+    frac = 6 * hint
     lx = v * (1 - s)
-    ly = v * (1 - s*frac)
-    lz = v * ( 1 - s * ( 1 - frac))
+    ly = v * (1 - s * frac)
+    lz = v * (1 - s * (1 - frac))
     if hint == 6:
         RGB = [v, lz, lx]
     elif hint == 1:
-        RGB = [ly,v,lx]
+        RGB = [ly, v, lx]
     elif hint == 2:
-        RGB = [lx,v,lz]
+        RGB = [lx, v, lz]
     elif hint == 3:
-        RGB = [lx,ly,v]
+        RGB = [lx, ly, v]
     elif hint == 4:
         RGB = [lz, lx, v]
     else:
-        RGB = [v,lx,ly]
+        RGB = [v, lx, ly]
     return RGB
+
 
 def rgb2hsv(r, g, b):
     mx = max(r, g, b)
     mn = min(r, g, b)
-    df = mx-mn
+    df = mx - mn
     v = mx
     if mx > 0.00001:
-        s = df/mx
+        s = df / mx
     else:
         s = 0
     if s == 0:
         h = 0
     else:
         if r == mx:
-            h = (g-b)/df
+            h = (g - b) / df
         elif g == mx:
-            h = 2 + (b-r)/df
+            h = 2 + (b - r) / df
         else:
-            h = 4 + (r-g)/df
-        h = h/6
+            h = 4 + (r - g) / df
+        h = h / 6
         if h < 0:
             h += 1
 
     return h, s, v
 
 
-
 def rainbow(cv):
     dx = 0.8
     global clamp_color
-    if cv<clamp_color[0] :
-        cv=clamp_color[0]
-    if cv>clamp_color[1] :
+    if cv < clamp_color[0]:
+        cv = clamp_color[0]
+    if cv > clamp_color[1]:
         cv = clamp_color[1]
 
-
-    cv = (6-2*dx)*cv+dx
-    R = max(0.0,(3-np.fabs(cv-4)-np.fabs(cv-5))/2)
-    G = max(0.0,(4-np.fabs(cv-2)-np.fabs(cv-4))/2)
-    B = max(0.0,(3-np.fabs(cv-1)-np.fabs(cv-2))/2)
+    cv = (6 - 2 * dx) * cv + dx
+    R = max(0.0, (3 - np.fabs(cv - 4) - np.fabs(cv - 5)) / 2)
+    G = max(0.0, (4 - np.fabs(cv - 2) - np.fabs(cv - 4)) / 2)
+    B = max(0.0, (3 - np.fabs(cv - 1) - np.fabs(cv - 2)) / 2)
 
     if not hue == 0:
-        [h,s,v] = rgb2hsv(R,G,B)
+        [h, s, v] = rgb2hsv(R, G, B)
 
-        h = (h+hue)%1
-        R,G,B = hsv2rgb(h,s,v)
-    R = sat*R
-    G = sat*G
-    B = sat*B
+        h = (h + hue) % 1
+        R, G, B = hsv2rgb(h, s, v)
+    R = sat * R
+    G = sat * G
+    B = sat * B
 
-    return [R,G,B]
+    return [R, G, B]
+
 
 def twotone(value):
-    c1= [255/256,255/256,51/256]
-    c2 =  [0.0,51/256,255/256]
+    c1 = [255 / 256, 255 / 256, 51 / 256]
+    c2 = [0.0, 51 / 256, 255 / 256]
     global clamp_color
-    if value<clamp_color[0] :
-        value=clamp_color[0]
-    if value>clamp_color[1] :
+    if value < clamp_color[0]:
+        value = clamp_color[0]
+    if value > clamp_color[1]:
         value = clamp_color[1]
 
-# nog scalen!!
+    # nog scalen!!
 
-
-    R = value * (c1[0]-c2[0]) + c2[0]
-    G = value * (c1[1]-c2[1]) + c2[1]
-    B = value * (c1[2]-c2[2]) + c2[2]
+    R = value * (c1[0] - c2[0]) + c2[0]
+    G = value * (c1[1] - c2[1]) + c2[1]
+    B = value * (c1[2] - c2[2]) + c2[2]
     if not hue == 0:
-        [h,s,v] = rgb2hsv(R,G,B)
-        h = (h+hue)%1
-        R,G,B = hsv2rgb(h,s,v)
-    R = sat*R
-    G = sat*G
-    B = sat*B
+        [h, s, v] = rgb2hsv(R, G, B)
+        h = (h + hue) % 1
+        R, G, B = hsv2rgb(h, s, v)
+    R = sat * R
+    G = sat * G
+    B = sat * B
+
+    return [R, G, B]
 
 
-    return [R,G,B]
-
-
-#set_colormap: Sets three different types of colormaps
+# set_colormap: Sets three different types of colormaps
 def set_colormap(vy):
     RGB = np.zeros(3)
     global scalar_col
-    if not NLEVELS == 2^256:
+    if not NLEVELS == 2 ^ 256:
         vy = vy * NLEVELS
         vy = int(vy)
         vy = vy / NLEVELS
 
-    if scalar_col==COLOR_BLACKWHITE:
+    if scalar_col == COLOR_BLACKWHITE:
         RGB.fill(vy)
-    elif scalar_col==COLOR_RAINBOW:
+    elif scalar_col == COLOR_RAINBOW:
         RGB = rainbow(vy)
     elif scalar_col == COLOR_TWOTONE:
         RGB = twotone(vy)
@@ -307,7 +306,7 @@ def set_colormap(vy):
     # glColor3f(RGB[0], RGB[1], RGB[2])
 
 
-#direction_to_color: Set the current color by mapping a direction vector (x,y), using
+# direction_to_color: Set the current color by mapping a direction vector (x,y), using
 #                    the color mapping method 'method'. If method==1, map the vector direction
 #                    using a rainbow colormap. If method==0, simply use the white color
 def direction_to_color(x, y, method):
@@ -331,9 +330,10 @@ def direction_to_color(x, y, method):
 
     glColor3f(RGB[0], RGB[1], RGB[2])
 
-def magnitude_to_color(x,y, colormaptype):
+
+def magnitude_to_color(x, y, colormaptype):
     RGB = np.ones(3)
-    mag = np.sqrt(x*x + y*y)
+    mag = np.sqrt(x * x + y * y)
 
     mag = scaling_factor_mag * mag + clamp_factor_mag
     if mag > 1:
@@ -341,97 +341,97 @@ def magnitude_to_color(x,y, colormaptype):
     if mag < 0:
         mag = 0
     if colormaptype == 0:
-        RGB = [mag,mag,mag]
+        RGB = [mag, mag, mag]
     elif colormaptype == 1:
         RGB = rainbow(mag)
     elif colormaptype == 2:
         RGB = twotone(mag)
 
-    glColor3f(RGB[0],RGB[1],RGB[2])
+    glColor3f(RGB[0], RGB[1], RGB[2])
+
 
 def makecolormap(colormaptobe):
-    colormap = np.zeros((50,50,3))
-    for i in range(0,DIM):
-        for j in range(0,DIM):
-            colormap[i,j,:] = set_colormap(colormaptobe[i,j])
+    colormap = np.zeros((50, 50, 3))
+    for i in range(0, DIM):
+        for j in range(0, DIM):
+            colormap[i, j, :] = set_colormap(colormaptobe[i, j])
     c = []
-    for x in range(0,DIM-1):
-        for y in range(0,DIM-1):
-            c += [colormap[x,y,0],colormap[x,y,1],colormap[x,y,2]]
-            c += [colormap[x,y+1,0],colormap[x,y+1,1],colormap[x,y+1,2]]
-            c += [colormap[x+1,y+1,0],colormap[x+1,y+1,1],colormap[x+1,y+1,2]]
-            c += [colormap[x,y,0],colormap[x,y,1],colormap[x,y,2]]
-            c += [colormap[x+1,y+1,0],colormap[x+1,y+1,1],colormap[x+1,y+1,2]]
-            c += [colormap[x+1,y,0],colormap[x+1,y,1],colormap[x+1,y,2]]
+    for x in range(0, DIM - 1):
+        for y in range(0, DIM - 1):
+            c += [colormap[x, y, 0], colormap[x, y, 1], colormap[x, y, 2]]
+            c += [colormap[x, y + 1, 0], colormap[x, y + 1, 1], colormap[x, y + 1, 2]]
+            c += [colormap[x + 1, y + 1, 0], colormap[x + 1, y + 1, 1], colormap[x + 1, y + 1, 2]]
+            c += [colormap[x, y, 0], colormap[x, y, 1], colormap[x, y, 2]]
+            c += [colormap[x + 1, y + 1, 0], colormap[x + 1, y + 1, 1], colormap[x + 1, y + 1, 2]]
+            c += [colormap[x + 1, y, 0], colormap[x + 1, y, 1], colormap[x + 1, y, 2]]
     # print(c)
     return c
 
 
 def makevertices():
-    vertices = []
+    v = []
     for i in range(49):
         for j in range(49):
             p0 = [i, j, 0]
-            p1 = [i, j+1, 0]
-            p2 = [i+1, j+1, 0]
-            p3 = [i+1, j, 0]
-            vertices += p0 + p1 + p2 + p0 + p2 + p3
-    vertices = np.array(vertices)
-    vertices = vertices/(49/2)-1
-    vertices = vertices.tolist()
-    return vertices
+            p1 = [i, j + 1, 0]
+            p2 = [i + 1, j + 1, 0]
+            p3 = [i + 1, j, 0]
+            v += p0 + p1 + p2 + p0 + p2 + p3
+    v = np.array(v)
+    v = v / (48 / 2) - 1
+    v = v.tolist()
+    return v
+
 
 def visualize():
     wn = winWidth / (DIM + 1)
     hn = winHeight / (DIM + 1)
 
-
     if draw_smoke:
 
         glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
-        colormaptobe = np.zeros((50,50))
+        colormaptobe = np.zeros((50, 50))
         if colormap_type == 0:
-            colormaptobe = field[-1,:,:]
+            colormaptobe = field[-1, :, :]
         elif colormap_type == 1:
-            colormaptobe = scale_velo_map * np.sqrt(field[0,:,:]*field[0,:,:] + field[1,:,:]*field[1,:,:])
+            colormaptobe = scale_velo_map * np.sqrt(field[0, :, :] * field[0, :, :] + field[1, :, :] * field[1, :, :])
         elif colormap_type == 2:
-            colormaptobe = np.sqrt(forces[0,:,:]*forces[0,:,:] + forces[1,:,:]*forces[1,:,:])
+            colormaptobe = np.sqrt(forces[0, :, :] * forces[0, :, :] + forces[1, :, :] * forces[1, :, :])
 
         glBegin(GL_TRIANGLES)
         for i in range(0, DIM - 1):
             for j in range(0, DIM - 1):
-
                 px0 = wn + i * wn
                 py0 = hn + j * hn
 
                 px1 = wn + i * wn
                 py1 = hn + (j + 1) * hn
-                #idx1 = ((j + 1) * DIM) + i;
+                # idx1 = ((j + 1) * DIM) + i;
 
                 px2 = wn + (i + 1) * wn
                 py2 = hn + (j + 1) * hn
-                #dx2 = ((j + 1) * DIM) + (i + 1);
+                # dx2 = ((j + 1) * DIM) + (i + 1);
 
                 px3 = wn + (i + 1) * wn
                 py3 = hn + j * hn
-                #idx3 = (j * DIM) + (i + 1);
+                # idx3 = (j * DIM) + (i + 1);
 
                 set_colormap(colormap[i, j])
                 glVertex2f(px0, py0)
 
-                set_colormap(colormap[i,j+1])
+                set_colormap(colormap[i, j + 1])
                 glVertex2f(px1, py1)
 
-                set_colormap(colormap[i+1,j+1])
+                set_colormap(colormap[i + 1, j + 1])
                 glVertex2f(px2, py2)
 
-                set_colormap(colormap[i,j])
+                set_colormap(colormap[i, j])
                 glVertex2f(px0, py0)
 
-                set_colormap(colormap[i+1,j+1])
+                set_colormap(colormap[i + 1, j + 1])
                 glVertex2f(px2, py2)
 
-                set_colormap(colormap[i+1,j])
+                set_colormap(colormap[i + 1, j])
                 glVertex2f(px3, py3)
 
         glEnd()
@@ -484,7 +484,7 @@ def drag(mx, my):
     length = np.sqrt(dx * dx + dy * dy)
     if not length == 0.0:
         dx = dx * (0.3 / length)
-        dy = dy * (0.3/ length)
+        dy = dy * (0.3 / length)
     forces[0, X, Y] += dx
     forces[1, X, Y] += dy
     field[-1, X, Y] = 10.0
@@ -513,8 +513,7 @@ def display():
 
 
 def keyboard(key):
-    #ch = key.decode("utf-8")
-    print(key)
+    global clamp_color
     if key == pygame.K_t:
         global dt
         dt = dt - 0.001
@@ -568,24 +567,21 @@ def keyboard(key):
         global frozen
         frozen = not frozen
     elif key == pygame.K_1:
-        global clamp_color
         clamp_color[0] += 0.1
-        clamp_color[0] = max(clamp_color[0],0)
+        clamp_color[0] = max(clamp_color[0], 0)
     elif key == pygame.K_2:
-        global clamp_color
+
         clamp_color[0] -= 0.1
-        clamp_color[0] = max(clamp_color[0],0)
+        clamp_color[0] = max(clamp_color[0], 0)
     elif key == pygame.K_3:
-        global clamp_color
         clamp_color[1] += 0.1
-        clamp_color[1] = min(clamp_color[1],1)
+        clamp_color[1] = min(clamp_color[1], 1)
     elif key == pygame.K_4:
-        global clamp_color
         clamp_color[1] -= 0.1
-        clamp_color[1] = min(clamp_color[1],1)
+        clamp_color[1] = min(clamp_color[1], 1)
     elif key == pygame.K_h:
         global hue
-        hue += 1/6
+        hue += 1 / 6
         if hue > 1.0:
             hue = 0
     elif key == pygame.K_l:
@@ -598,6 +594,15 @@ def keyboard(key):
 
     elif key == pygame.K_q:
         sys.exit()
+
+
+def drawGlyph(x, y, vx, vy, color, size):
+    size = 10
+    glColor3f(color[0], color[1], color[2])
+    glVertex2f(x + vx, y + vy)
+    glVertex2f(x - (size/DIM) * vy, y + (size/DIM) * vx)
+    glVertex2f(x + (size/DIM) * vy, y - (size/DIM) * vx)
+
 
 
 def main():
@@ -635,16 +640,13 @@ def main():
     # init_simulation()
     # glutMainLoop()
 
-
-
     clock = pygame.time.Clock()
 
     vertices = makevertices()
     # print(type(vertices[0]))
     global colors
-    colors = makecolormap(field[-1,:,:])
-    # print(colors)
-    # colors = vertices
+    colors = makecolormap(field[-1, :, :])
+
     vertices_vbo = glGenBuffers(1)
     glBindBuffer(GL_ARRAY_BUFFER, vertices_vbo)
     glBufferData(GL_ARRAY_BUFFER, len(vertices) * 4, (c_float * len(vertices))(*vertices), GL_STATIC_DRAW)
@@ -652,8 +654,6 @@ def main():
     colors_vbo = glGenBuffers(1)
     glBindBuffer(GL_ARRAY_BUFFER, colors_vbo)
     glBufferData(GL_ARRAY_BUFFER, len(colors) * 4, (c_float * len(colors))(*colors), GL_STATIC_DRAW)
-
-
 
     running = True
     while running:
@@ -671,10 +671,10 @@ def main():
                     dragbool = False
             if event.type == pygame.KEYDOWN:
                 keyboard(event.key)
-        if dragbool == True:
+        if dragbool:
             mx, my = event.pos
             # print("drag")
-            drag(mx,my)
+            drag(mx, my)
 
         # print(colors)
         glClear(GL_COLOR_BUFFER_BIT)
@@ -683,16 +683,14 @@ def main():
 
         glBindBuffer(GL_ARRAY_BUFFER, vertices_vbo)
         glVertexPointer(3, GL_FLOAT, 0, None)
-        if draw_smoke :
+        if draw_smoke:
             glBindBuffer(GL_ARRAY_BUFFER, colors_vbo)
             glBufferData(GL_ARRAY_BUFFER, len(colors) * 4, (c_float * len(colors))(*colors), GL_STATIC_DRAW)
             glColorPointer(3, GL_FLOAT, 0, None)
 
-
             glDrawArrays(GL_TRIANGLES, 0, 43218)
         if draw_vecs:
             glBegin(GL_LINES)
-            count = 0
             for i in range(0, DIM):
                 for j in range(0, DIM):
 
@@ -700,15 +698,26 @@ def main():
                         magnitude_to_color(field[0, i, j], field[1, i, j], color_mag_v)
                     else:
                         direction_to_color(field[0, i, j], field[1, i, j], color_dir)
-                    glVertex2f(((i/(49/2))-1), ((j/(49/2))-1))
-                    glVertex2f(((i/(49/2))-1) + vec_scale * field[0, i, j], ( ((j/(49/2))-1)) + vec_scale * field[1, i, j])
-                    # print((wn + i*wn) + vec_scale *field[0,i,j] - wn + i*wn)
-            # print(count)
+                    glVertex2f(((i / (49 / 2)) - 1), ((j / (49 / 2)) - 1))
+                    glVertex2f(((i / (49 / 2)) - 1) + vec_scale * field[0, i, j],
+                               (((j / (49 / 2)) - 1)) + vec_scale * field[1, i, j])
             glEnd()
 
+        if draw_glyphs:
+            glBegin(GL_TRIANGLES)
+            for i in range(DIM):
+                for j in range(DIM):
+                    x = i / ((DIM - 1) / 2) - 1
+                    y = j / ((DIM - 1) / 2) - 1
+                    vx = field[0, i, j]
+                    vy = field[1, i, j]
+                    dir = math.atan2(vy, vx) / 3.1415927 + 1
+                    color = [1, 1, 1]
+                    size = np.sqrt(vx * vx + vy * vy)
+                    drawGlyph(x, y, vx, vy, color, size)
+            glEnd()
 
-
-
+        do_one_simulation_step()
         pygame.display.flip()
 
 
