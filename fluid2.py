@@ -596,13 +596,28 @@ def keyboard(key):
         sys.exit()
 
 
-def drawGlyph(x, y, vx, vy, color, size):
-    size = 10
-    glColor3f(color[0], color[1], color[2])
+def drawGlyph(x, y, vx, vy, size):
+    size += 5
+    glBegin(GL_TRIANGLES)
+    #size = 10
+    #glColor3f(color[0], color[1], color[2])
     glVertex2f(x + vx, y + vy)
-    glVertex2f(x - (size/DIM) * vy, y + (size/DIM) * vx)
-    glVertex2f(x + (size/DIM) * vy, y - (size/DIM) * vx)
+    glVertex2f(x - 10/DIM * vy, y + 10/DIM * vx)
+    glVertex2f(x + 10/DIM * vy, y - 10/DIM * vx)
+    glEnd()
 
+def drawArrow(x, y, vx, vy, size):
+    size+=5
+    glBegin(GL_LINES)
+    glVertex2f(x + vx, y + vy)
+    glVertex2f(x, y)
+    glEnd()
+    glBegin(GL_TRIANGLES)
+    #glColor3f(color[0], color[1], color[2])
+    glVertex2f(x + vx, y + vy)
+    glVertex2f((x+0.5*vx) - 2*(size / DIM) * vy, (y+0.5*vy) + 2*(size / DIM) * vx)
+    glVertex2f((x+0.5*vx) + 2*(size / DIM) * vy, (y+0.5*vy) - 2*(size / DIM) * vx)
+    glEnd()
 
 
 def main():
@@ -704,7 +719,6 @@ def main():
             glEnd()
 
         if draw_glyphs:
-            glBegin(GL_TRIANGLES)
             for i in range(DIM):
                 for j in range(DIM):
                     x = i / ((DIM - 1) / 2) - 1
@@ -712,10 +726,9 @@ def main():
                     vx = field[0, i, j]
                     vy = field[1, i, j]
                     dir = math.atan2(vy, vx) / 3.1415927 + 1
-                    color = [1, 1, 1]
-                    size = np.sqrt(vx * vx + vy * vy)
-                    drawGlyph(x, y, vx, vy, color, size)
-            glEnd()
+                    magnitude_to_color(i, j, color_dir)
+                    size = field[-1, i, j]
+                    drawGlyph(x, y, vx, vy, size)
 
         do_one_simulation_step()
         pygame.display.flip()
