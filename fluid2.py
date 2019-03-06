@@ -192,6 +192,9 @@ def makecolormap(colormaptobe):
     # print(c)
     return c
 
+def blackcolormap():
+    return [0]*43218
+
 def vis_color():
     colormaptobe = np.zeros((50, 50))
     if colormap_type == 0:
@@ -270,25 +273,26 @@ def magnitude_to_color(x, y, colormaptype):
 
 
 # functions that draws cones as glyphs
-def drawGlyph(x, y, vx, vy, size):
+def drawGlyph(x, y, vx, vy, size, color):
     size += 5
     glBegin(GL_TRIANGLES)
     #size = 10
-    #glColor3f(color[0], color[1], color[2])
+    glColor3f(color[0], color[1], color[2])
     glVertex2f(x + vx, y + vy)
     glVertex2f(x - 10/DIM * vy, y + 10/DIM * vx)
     glVertex2f(x + 10/DIM * vy, y - 10/DIM * vx)
     glEnd()
 
 # function that draws arrows as glyphs
-def drawArrow(x, y, vx, vy, size):
+def drawArrow(x, y, vx, vy, size, color):
     size+=5
     glBegin(GL_LINES)
+    glColor3f(color[0], color[1], color[2])
     glVertex2f(x + vx, y + vy)
     glVertex2f(x, y)
     glEnd()
     glBegin(GL_TRIANGLES)
-    #glColor3f(color[0], color[1], color[2])
+    glColor3f(color[0], color[1], color[2])
     glVertex2f(x + vx, y + vy)
     glVertex2f((x+0.5*vx) - 2*(size / DIM) * vy, (y+0.5*vy) + 2*(size / DIM) * vx)
     glVertex2f((x+0.5*vx) + 2*(size / DIM) * vy, (y+0.5*vy) - 2*(size / DIM) * vx)
@@ -435,36 +439,7 @@ def keyboard(key):
         sys.exit()
 
 
-def drawGlyph(x, y, vx, vy, size, color):
-    size += 5
-    glBegin(GL_TRIANGLES)
-    #size = 10
-    glColor3f(color[0], color[1], color[2])
-    glVertex2f(x + vx, y + vy)
-    glVertex2f(x - 10/DIM * vy, y + 10/DIM * vx)
-    glVertex2f(x + 10/DIM * vy, y - 10/DIM * vx)
-    glEnd()
 
-def drawArrow(x, y, vx, vy, size, color):
-    size+=5
-    glBegin(GL_LINES)
-    glColor3f(color[0], color[1], color[2])
-    glVertex2f(x + vx, y + vy)
-    glVertex2f(x, y)
-    glEnd()
-    glBegin(GL_TRIANGLES)
-    glColor3f(color[0], color[1], color[2])
-    glVertex2f(x + vx, y + vy)
-    glVertex2f((x+0.5*vx) - 2*(size / DIM) * vy, (y+0.5*vy) + 2*(size / DIM) * vx)
-    glVertex2f((x+0.5*vx) + 2*(size / DIM) * vy, (y+0.5*vy) - 2*(size / DIM) * vx)
-    glEnd()
-def reshape(w, h):
-    glViewport(0, 0, w, h)
-    glMatrixMode(GL_PROJECTION)
-    glLoadIdentity()
-    gluOrtho2D(0.0, w, 0.0, h)
-    winWidth = w
-    winHeight = h
 
 
 
@@ -537,12 +512,13 @@ def main():
 
         glBindBuffer(GL_ARRAY_BUFFER, vertices_vbo)
         glVertexPointer(3, GL_FLOAT, 0, None)
-        if draw_smoke:
-            glBindBuffer(GL_ARRAY_BUFFER, colors_vbo)
-            glBufferData(GL_ARRAY_BUFFER, len(colors) * 4, (c_float * len(colors))(*colors), GL_STATIC_DRAW)
-            glColorPointer(3, GL_FLOAT, 0, None)
+        if not draw_smoke:
+            colors = blackcolormap()
+        glBindBuffer(GL_ARRAY_BUFFER, colors_vbo)
+        glBufferData(GL_ARRAY_BUFFER, len(colors) * 4, (c_float * len(colors))(*colors), GL_STATIC_DRAW)
+        glColorPointer(3, GL_FLOAT, 0, None)
 
-            glDrawArrays(GL_TRIANGLES, 0, 43218)
+        glDrawArrays(GL_TRIANGLES, 0, 43218)
         if draw_glyphs == 1:
             glBegin(GL_LINES)
             step = DIM/n_glyphs
