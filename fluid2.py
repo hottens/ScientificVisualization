@@ -33,6 +33,7 @@ hue = 0.0
 sat = 1.0
 dragbool = False
 
+
 scaling_factor_mag = 10
 clamp_factor_mag = 0.02
 
@@ -41,11 +42,11 @@ colors = []
 
 clamp_color = [0, 1]
 
-magdir = True
+magdir = False
 vec_scale = 5
 draw_smoke = True
 draw_vecs = False
-draw_glyphs = True
+draw_glyphs = 1
 n_glyphs = 16
 COLOR_BLACKWHITE = 0
 COLOR_RAINBOW = 1
@@ -231,6 +232,20 @@ def makecolormap(colormaptobe):
     # print(c)
     return c
 
+def vis_color():
+    colormaptobe = np.zeros((50, 50))
+    if colormap_type == 0:
+        colormaptobe = sim.field[-1, :, :]
+    elif colormap_type == 1:
+        colormaptobe = scale_velo_map * np.sqrt(sim.field[0, :, :] * sim.field[0, :, :] + sim.field[1, :, :] * sim.field[1, :, :])
+    elif colormap_type == 2:
+        colormaptobe = np.sqrt(sim.forces[0, :, :] * sim.forces[0, :, :] + sim.forces[1, :, :] * sim.forces[1, :, :])
+    # print(colormaptobe)
+    global colors
+    colors = makecolormap(colormaptobe)
+
+
+
 
 def makevertices():
     v = []
@@ -246,74 +261,6 @@ def makevertices():
     v = v.tolist()
     return v
 
-
-def visualize():
-    wn = winWidth / (DIM + 1)
-    hn = winHeight / (DIM + 1)
-
-    if draw_smoke:
-
-        glPolygonMode(GL_FRONT_AND_BACK, GL_FILL)
-        colormaptobe = np.zeros((50, 50))
-        if colormap_type == 0:
-            colormaptobe = field[-1, :, :]
-        elif colormap_type == 1:
-            colormaptobe = scale_velo_map * np.sqrt(sim.field[0, :, :] * sim.field[0, :, :] + sim.field[1, :, :] * sim.field[1, :, :])
-        elif colormap_type == 2:
-            colormaptobe = np.sqrt(sim.forces[0, :, :] * sim.forces[0, :, :] + sim.forces[1, :, :] * sim.forces[1, :, :])
-
-        glBegin(GL_TRIANGLES)
-        for i in range(0, DIM - 1):
-            for j in range(0, DIM - 1):
-                px0 = wn + i * wn
-                py0 = hn + j * hn
-
-                px1 = wn + i * wn
-                py1 = hn + (j + 1) * hn
-                # idx1 = ((j + 1) * DIM) + i;
-
-                px2 = wn + (i + 1) * wn
-                py2 = hn + (j + 1) * hn
-                # dx2 = ((j + 1) * DIM) + (i + 1);
-
-                px3 = wn + (i + 1) * wn
-                py3 = hn + j * hn
-                # idx3 = (j * DIM) + (i + 1);
-
-                set_colormap(colormap[i, j])
-                glVertex2f(px0, py0)
-
-                set_colormap(colormap[i, j + 1])
-                glVertex2f(px1, py1)
-
-                set_colormap(colormap[i + 1, j + 1])
-                glVertex2f(px2, py2)
-
-                set_colormap(colormap[i, j])
-                glVertex2f(px0, py0)
-
-                set_colormap(colormap[i + 1, j + 1])
-                glVertex2f(px2, py2)
-
-                set_colormap(colormap[i + 1, j])
-                glVertex2f(px3, py3)
-
-        glEnd()
-
-    if draw_vecs:
-        glBegin(GL_LINES)
-        count = 0
-        for i in range(0, DIM):
-            for j in range(0, DIM):
-                if magdir:
-                    magnitude_to_color(sim.field[0, i, j], sim.field[1, i, j], color_mag_v)
-                else:
-                    direction_to_color(sim.field[0, i, j], sim.field[1, i, j], color_dir)
-                glVertex2f(wn + i * wn, hn + j * hn)
-                glVertex2f((wn + i * wn) + vec_scale * sim.field[0, i, j], (hn + j * hn) + sim.vec_scale * field[1, i, j])
-                # print((wn + i*wn) + vec_scale *field[0,i,j] - wn + i*wn)
-        # print(count)
-        glEnd()
 
 
 def drag(mx, my):
@@ -367,14 +314,6 @@ def reshape(w, h):
     winHeight = h
 
 
-def display():
-    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-    glMatrixMode(GL_MODELVIEW)
-    glLoadIdentity()
-    visualize()
-    glFlush()
-    glutSwapBuffers()
-
 
 def keyboard(key):
     global clamp_color
@@ -407,14 +346,16 @@ def keyboard(key):
         sim.visc *= 0.2
     elif key == pygame.K_n:
         global draw_smoke
-        global draw_vecs
         draw_smoke = not draw_smoke
-        if not draw_smoke:
-            draw_vecs = True
     elif key == pygame.K_u:
-        draw_vecs = not draw_vecs
-        if not draw_vecs:
-            draw_smoke = True
+        global draw_glyphs
+        draw_glyphs += 1
+        if draw_glyphs > 3:
+            draw_glyphs = 0
+        # draw_vecs = not draw_vecs
+        # draw_glyphs = not draw_glyphs
+        # if not draw_vecs:
+            # draw_smoke = True
     elif key == pygame.K_i:
         global scalar_col
         scalar_col += 1
@@ -444,7 +385,7 @@ def keyboard(key):
     elif key == pygame.K_h:
         global hue
         hue += 1 / 6
-        if hue > 1.0:
+        if hue >= 1.0:
             hue = 0
     elif key == pygame.K_l:
         global NLEVELS
@@ -489,17 +430,6 @@ def main():
     wn = winWidth / (DIM + 1)
     hn = winHeight / (DIM + 1)
 
-    # glutInit(sys.argv)
-    # glutInitDisplayMode(GLUT_RGB | GLUT_DOUBLE | GLUT_DEPTH)
-    # glutInitWindowSize(500, 500)
-    # glutCreateWindow("Real-time smoke simulation and visualization")
-    # glutDisplayFunc(display)
-    # glutReshapeFunc(reshape)
-    # glutIdleFunc(do_one_simulation_step)
-    # glutKeyboardFunc(keyboard)
-    # glutMotionFunc(drag)
-    # init_simulation()
-    # glutMainLoop()
 
     clock = pygame.time.Clock()
 
@@ -540,6 +470,8 @@ def main():
         # print(colors)
         glClear(GL_COLOR_BUFFER_BIT)
         sim.do_one_simulation_step(frozen)
+        vis_color()
+
         glEnableClientState(GL_COLOR_ARRAY)
 
         glBindBuffer(GL_ARRAY_BUFFER, vertices_vbo)
@@ -550,28 +482,34 @@ def main():
             glColorPointer(3, GL_FLOAT, 0, None)
 
             glDrawArrays(GL_TRIANGLES, 0, 43218)
-        if draw_vecs:
+        if draw_glyphs == 1:
             glBegin(GL_LINES)
-            for i in range(0, DIM):
-                for j in range(0, DIM):
-
+            step = DIM/n_glyphs
+            for i in range(0, n_glyphs):
+                for j in range(0, n_glyphs):
+                    x = round(i*step)
+                    y = round(j*step)
                     if magdir:
-                        magnitude_to_color(field[0, i, j], field[1, i, j], color_mag_v)
+                        magnitude_to_color(sim.field[0, x, y], sim.field[1, x, y], color_mag_v)
                     else:
-                        direction_to_color(field[0, i, j], field[1, i, j], color_dir)
-                    glVertex2f(((i / (49 / 2)) - 1), ((j / (49 / 2)) - 1))
-                    glVertex2f(((i / (49 / 2)) - 1) + vec_scale * field[0, i, j],
-                               (((j / (49 / 2)) - 1)) + vec_scale * field[1, i, j])
+                        direction_to_color(sim.field[0, x, y], sim.field[1, x, y], color_dir)
+                    glVertex2f(((i*step / (49 / 2)) - 1), ((j*step / (49 / 2)) - 1))
+                    glVertex2f(((i*step / (49 / 2)) - 1) + vec_scale * sim.field[0, x, y],
+                               (((j*step / (49 / 2)) - 1)) + vec_scale * sim.field[1, x, y])
             glEnd()
 
-        if draw_glyphs:
+        if draw_glyphs == 2:
             glBegin(GL_TRIANGLES)
-            for i in range(DIM):
-                for j in range(DIM):
-                    x = i / ((DIM - 1) / 2) - 1
-                    y = j / ((DIM - 1) / 2) - 1
-                    vx = sim.field[0, i, j]
-                    vy = sim.field[1, i, j]
+            step = DIM/n_glyphs
+            for i in range(n_glyphs):
+                for j in range(n_glyphs):
+                    x = i*step
+                    y = j*step
+                    vx = sim.field[0, round(x), round(y)]
+                    vy = sim.field[1, round(x), round(y)]
+                    x = x / ((DIM - 1) / 2) - 1
+                    y = y / ((DIM - 1) / 2) - 1
+
                     dir = math.atan2(vy, vx) / 3.1415927 + 1
                     color = [1, 1, 1]
                     size = np.sqrt(vx * vx + vy * vy)

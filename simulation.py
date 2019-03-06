@@ -20,18 +20,6 @@ class Simulation:
             self.set_forces()
             self.solve()
             self.diffuse_matter()
-            # colormaptobe = np.zeros((50, 50))
-            # if colormap_type == 0:
-            #     colormaptobe = field[-1, :, :]
-            # elif colormap_type == 1:
-            #     colormaptobe = scale_velo_map * np.sqrt(field[0, :, :] * field[0, :, :] + field[1, :, :] * field[1, :, :])
-            # elif colormap_type == 2:
-            #     colormaptobe = np.sqrt(forces[0, :, :] * forces[0, :, :] + forces[1, :, :] * forces[1, :, :])
-            # # print(colormaptobe)
-            # global colors
-            # colors = makecolormap(colormaptobe)
-            # return colors
-            # glutPostRedisplay()
 
     def set_forces(self):
         self.field0[-1, :, :] = self.field[-1, :, :] * 0.9
