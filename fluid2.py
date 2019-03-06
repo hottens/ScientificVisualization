@@ -34,7 +34,7 @@ sat = 1.0
 dragbool = False
 
 
-scaling_factor_mag = 10
+scaling_factor_mag = 2
 clamp_factor_mag = 0.02
 
 vertices = []
@@ -193,7 +193,7 @@ def direction_to_color(x, y, method):
             b = 2 - b
         RGB = [r, g, b]
 
-    glColor3f(RGB[0], RGB[1], RGB[2])
+    return RGB
 
 
 def magnitude_to_color(x, y, colormaptype):
@@ -212,7 +212,7 @@ def magnitude_to_color(x, y, colormaptype):
     elif colormaptype == 2:
         RGB = twotone(mag)
 
-    glColor3f(RGB[0], RGB[1], RGB[2])
+    return RGB
 
 
 def makecolormap(colormaptobe):
@@ -405,24 +405,25 @@ def keyboard(key):
         sys.exit()
 
 
-def drawGlyph(x, y, vx, vy, size):
+def drawGlyph(x, y, vx, vy, size, color):
     size += 5
     glBegin(GL_TRIANGLES)
     #size = 10
-    #glColor3f(color[0], color[1], color[2])
+    glColor3f(color[0], color[1], color[2])
     glVertex2f(x + vx, y + vy)
     glVertex2f(x - 10/DIM * vy, y + 10/DIM * vx)
     glVertex2f(x + 10/DIM * vy, y - 10/DIM * vx)
     glEnd()
 
-def drawArrow(x, y, vx, vy, size):
+def drawArrow(x, y, vx, vy, size, color):
     size+=5
     glBegin(GL_LINES)
+    glColor3f(color[0], color[1], color[2])
     glVertex2f(x + vx, y + vy)
     glVertex2f(x, y)
     glEnd()
     glBegin(GL_TRIANGLES)
-    #glColor3f(color[0], color[1], color[2])
+    glColor3f(color[0], color[1], color[2])
     glVertex2f(x + vx, y + vy)
     glVertex2f((x+0.5*vx) - 2*(size / DIM) * vy, (y+0.5*vy) + 2*(size / DIM) * vx)
     glVertex2f((x+0.5*vx) + 2*(size / DIM) * vy, (y+0.5*vy) - 2*(size / DIM) * vx)
@@ -511,10 +512,13 @@ def main():
 
                     x = round(i*step)
                     y = round(j*step)
+                    color = np.ones(3)
                     if magdir:
-                        magnitude_to_color(sim.field[0, x, y], sim.field[1, x, y], color_mag_v)
+                        color = magnitude_to_color(sim.field[0, x, y], sim.field[1, x, y], color_mag_v)
                     else:
-                        direction_to_color(sim.field[0, x, y], sim.field[1, x, y], color_dir)
+                        color = direction_to_color(sim.field[0, x, y], sim.field[1, x, y], color_dir)
+                    glColor3f(color[0], color[1], color[2])
+
                     glVertex2f((((i+0.5)*step / (49 / 2)) - 1), (((j+0.5)*step / (49 / 2)) - 1))
                     glVertex2f((((i+0.5)*step / (49 / 2)) - 1) + vec_scale * sim.field[0, x, y],
                                ((((j+0.5)*step / (49 / 2)) - 1)) + vec_scale * sim.field[1, x, y])
@@ -529,15 +533,20 @@ def main():
                     y = j*step
                     vx = step * sim.field[0, round(x), round(y)]
                     vy = step * sim.field[1, round(x), round(y)]
-                    x = (i+0.5)*step / ((DIM - 1) / 2) - 1
-                    y = (j+0.5)*step / ((DIM - 1) / 2) - 1
+                    x2 = (i+0.5)*step / ((DIM - 1) / 2) - 1
+                    y2 = (j+0.5)*step / ((DIM - 1) / 2) - 1
 
-                    magnitude_to_color(i, j, color_dir)
-                    size = sim.field[-1, i, j]
-                    if draw_glyphs == 2:
-                        drawGlyph(x, y, vx, vy, size)
+                    color = np.ones(3)
+                    if magdir:
+                        color = magnitude_to_color(sim.field[0, round(x), round(y)], sim.field[1, round(x), round(y)], color_mag_v)
                     else:
-                        drawArrow(x, y, vx, vy, size)
+                        color = direction_to_color(sim.field[0, round(x), round(y)], sim.field[1, round(x), round(y)], color_dir)
+
+                    size = sim.field[-1, round(x), round(y)]
+                    if draw_glyphs == 2:
+                        drawGlyph(x2, y2, vx, vy, size, color)
+                    else:
+                        drawArrow(x2, y2, vx, vy, size, color)
 
         pygame.display.flip()
 
