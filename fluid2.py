@@ -395,6 +395,12 @@ def keyboard(key):
             level = 0
         NLEVELS = levels[level]
 
+    elif key == pygame.K_g:
+        global n_glyphs
+        n_glyphs += 5
+        if n_glyphs > 50:
+            n_glyphs = 5
+
     elif key == pygame.K_q:
         sys.exit()
 
@@ -502,28 +508,29 @@ def main():
             step = DIM/n_glyphs
             for i in range(0, n_glyphs):
                 for j in range(0, n_glyphs):
+
                     x = round(i*step)
                     y = round(j*step)
                     if magdir:
                         magnitude_to_color(sim.field[0, x, y], sim.field[1, x, y], color_mag_v)
                     else:
                         direction_to_color(sim.field[0, x, y], sim.field[1, x, y], color_dir)
-                    glVertex2f(((i*step / (49 / 2)) - 1), ((j*step / (49 / 2)) - 1))
-                    glVertex2f(((i*step / (49 / 2)) - 1) + vec_scale * sim.field[0, x, y],
-                               (((j*step / (49 / 2)) - 1)) + vec_scale * sim.field[1, x, y])
+                    glVertex2f((((i+0.5)*step / (49 / 2)) - 1), (((j+0.5)*step / (49 / 2)) - 1))
+                    glVertex2f((((i+0.5)*step / (49 / 2)) - 1) + vec_scale * sim.field[0, x, y],
+                               ((((j+0.5)*step / (49 / 2)) - 1)) + vec_scale * sim.field[1, x, y])
             glEnd()
 
         if draw_glyphs >= 2:
             step = DIM/n_glyphs
             for i in range(n_glyphs):
                 for j in range(n_glyphs):
+
                     x = i*step
                     y = j*step
                     vx = step * sim.field[0, round(x), round(y)]
                     vy = step * sim.field[1, round(x), round(y)]
-
-                    x = x / ((DIM - 1) / 2) - 1
-                    y = y / ((DIM - 1) / 2) - 1
+                    x = (i+0.5)*step / ((DIM - 1) / 2) - 1
+                    y = (j+0.5)*step / ((DIM - 1) / 2) - 1
 
                     magnitude_to_color(i, j, color_dir)
                     size = sim.field[-1, i, j]
