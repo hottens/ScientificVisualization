@@ -1,4 +1,3 @@
-# import pygame
 import numpy as np
 import sys
 import math
@@ -6,9 +5,6 @@ import simulation
 import pygame
 from OpenGL.GL import *
 from ctypes import *
-import thorpy
-# import pyfftw
-# from pygame.locals import *
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -33,11 +29,9 @@ hue = 0.0
 sat = 1.0
 dragbool = False
 
-
 scaling_factor_mag = 2
 clamp_factor_mag = 0.02
 
-vertices = []
 colors = []
 
 clamp_color = [0, 1]
@@ -171,8 +165,6 @@ def set_colormap(vy):
     elif scalar_col == COLOR_TWOTONE:
         RGB = twotone(vy)
     return RGB
-    # glColor3f(RGB[0], RGB[1], RGB[2
-
 
 
 def makecolormap(colormaptobe):
@@ -189,11 +181,12 @@ def makecolormap(colormaptobe):
             c += [colormap[x, y, 0], colormap[x, y, 1], colormap[x, y, 2]]
             c += [colormap[x + 1, y + 1, 0], colormap[x + 1, y + 1, 1], colormap[x + 1, y + 1, 2]]
             c += [colormap[x + 1, y, 0], colormap[x + 1, y, 1], colormap[x + 1, y, 2]]
-    # print(c)
     return c
+
 
 def blackcolormap():
     return [0]*43218
+
 
 def vis_color():
     colormaptobe = np.zeros((50, 50))
@@ -203,9 +196,9 @@ def vis_color():
         colormaptobe = scale_velo_map * np.sqrt(sim.field[0, :, :] * sim.field[0, :, :] + sim.field[1, :, :] * sim.field[1, :, :])
     elif colormap_type == 2:
         colormaptobe = np.sqrt(sim.forces[0, :, :] * sim.forces[0, :, :] + sim.forces[1, :, :] * sim.forces[1, :, :])
-    # print(colormaptobe)
     global colors
     colors = makecolormap(colormaptobe)
+
 
 # returns the vertices needed for printing the colormap
 def makevertices():
@@ -221,8 +214,6 @@ def makevertices():
     v = v / (48 / 2) - 1
     v = v.tolist()
     return v
-
-
 
 
 ########## VECTOR COLORING
@@ -276,12 +267,12 @@ def magnitude_to_color(x, y, colormaptype):
 def drawGlyph(x, y, vx, vy, size, color):
     size += 5
     glBegin(GL_TRIANGLES)
-    #size = 10
     glColor3f(color[0], color[1], color[2])
     glVertex2f(x + vx, y + vy)
     glVertex2f(x - 10/DIM * vy, y + 10/DIM * vx)
     glVertex2f(x + 10/DIM * vy, y - 10/DIM * vx)
     glEnd()
+
 
 # function that draws arrows as glyphs
 def drawArrow(x, y, vx, vy, size, color):
@@ -297,9 +288,6 @@ def drawArrow(x, y, vx, vy, size, color):
     glVertex2f((x+0.5*vx) - 2*(size / DIM) * vy, (y+0.5*vy) + 2*(size / DIM) * vx)
     glVertex2f((x+0.5*vx) + 2*(size / DIM) * vy, (y+0.5*vy) - 2*(size / DIM) * vx)
     glEnd()
-
-
-
 
 
 ##### USER INPUT
@@ -349,21 +337,17 @@ def drag(mx, my):
     # print(colors)
 
 
-
 # function that gets the keyboard input, which is used for controlling the parameters
 #       of the simulation.
 def keyboard(key):
     global clamp_color
     if key == pygame.K_t:
         sim.dt -= 0.001
-
     elif key == pygame.K_y:
         sim.dt += 0.001
-
     elif key == pygame.K_c:
         global color_dir
         color_dir = not color_dir
-
     elif key == pygame.K_v:
         global color_mag_v
         color_mag_v += 1
@@ -389,7 +373,6 @@ def keyboard(key):
         draw_glyphs += 1
         if draw_glyphs > 3:
             draw_glyphs = 0
-
     elif key == pygame.K_i:
         global scalar_col
         scalar_col += 1
@@ -407,7 +390,6 @@ def keyboard(key):
         clamp_color[0] += 0.1
         clamp_color[0] = max(clamp_color[0], 0)
     elif key == pygame.K_2:
-
         clamp_color[0] -= 0.1
         clamp_color[0] = max(clamp_color[0], 0)
     elif key == pygame.K_3:
@@ -428,19 +410,13 @@ def keyboard(key):
         if level > 3:
             level = 0
         NLEVELS = levels[level]
-
     elif key == pygame.K_g:
         global n_glyphs
         n_glyphs += 5
         if n_glyphs > 50:
             n_glyphs = 5
-
     elif key == pygame.K_q:
         sys.exit()
-
-
-
-
 
 
 def main():
@@ -463,14 +439,9 @@ def main():
 
     print("q:     quit\n\n")
 
-    wn = winWidth / (DIM + 1)
-    hn = winHeight / (DIM + 1)
-
-
     clock = pygame.time.Clock()
 
     vertices = makevertices()
-    # print(type(vertices[0]))
     global colors
     colors = makecolormap(sim.field[-1, :, :])
 
@@ -500,10 +471,8 @@ def main():
                 keyboard(event.key)
         if dragbool:
             mx, my = event.pos
-            # print("drag")
             drag(mx, my)
 
-        # print(colors)
         glClear(GL_COLOR_BUFFER_BIT)
         sim.do_one_simulation_step(frozen)
         vis_color()
@@ -574,4 +543,3 @@ glEnableClientState(GL_VERTEX_ARRAY)
 
 
 main()
-# print(np.fft.rfft2(np.zeros((2,16))).size)
