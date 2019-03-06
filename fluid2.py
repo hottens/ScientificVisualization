@@ -56,6 +56,9 @@ scalar_col = 0
 
 ### Visualization
 
+####### COLORMAPPING
+
+# converse hsv to rgb coloring
 def hsv2rgb(h, s, v):
     hint = int(h * 6)
     frac = 6 * hint
@@ -76,7 +79,7 @@ def hsv2rgb(h, s, v):
         RGB = [v, lx, ly]
     return RGB
 
-
+# converse rgb to hsv coloring
 def rgb2hsv(r, g, b):
     mx = max(r, g, b)
     mn = min(r, g, b)
@@ -101,7 +104,7 @@ def rgb2hsv(r, g, b):
 
     return h, s, v
 
-
+# return color from rainbow colormap based on a value
 def rainbow(cv):
     dx = 0.8
     global clamp_color
@@ -126,7 +129,7 @@ def rainbow(cv):
 
     return [R, G, B]
 
-
+# return color from twotone colormap based on a value
 def twotone(value):
     c1 = [255 / 256, 255 / 256, 51 / 256]
     c2 = [0.0, 51 / 256, 255 / 256]
@@ -168,51 +171,8 @@ def set_colormap(vy):
     elif scalar_col == COLOR_TWOTONE:
         RGB = twotone(vy)
     return RGB
-    # glColor3f(RGB[0], RGB[1], RGB[2])
+    # glColor3f(RGB[0], RGB[1], RGB[2
 
-
-# direction_to_color: Set the current color by mapping a direction vector (x,y), using
-#                    the color mapping method 'method'. If method==1, map the vector direction
-#                    using a rainbow colormap. If method==0, simply use the white color
-def direction_to_color(x, y, method):
-    RGB = np.ones(3)
-    if method:
-        f = math.atan2(y, x) / 3.1415927 + 1
-        r = f
-        if r > 1:
-            r = 2 - r
-        g = f + .66667
-        if g > 2:
-            g -= 2
-        if g > 1:
-            g = 2 - g
-        b = f + 2 * .66667
-        if b > 2:
-            b -= 2
-        if b > 1:
-            b = 2 - b
-        RGB = [r, g, b]
-
-    return RGB
-
-
-def magnitude_to_color(x, y, colormaptype):
-    RGB = np.ones(3)
-    mag = np.sqrt(x * x + y * y)
-
-    mag = scaling_factor_mag * mag + clamp_factor_mag
-    if mag > 1:
-        mag = 1
-    if mag < 0:
-        mag = 0
-    if colormaptype == 0:
-        RGB = [mag, mag, mag]
-    elif colormaptype == 1:
-        RGB = rainbow(mag)
-    elif colormaptype == 2:
-        RGB = twotone(mag)
-
-    return RGB
 
 
 def makecolormap(colormaptobe):
@@ -244,9 +204,7 @@ def vis_color():
     global colors
     colors = makecolormap(colormaptobe)
 
-
-
-
+# returns the vertices needed for printing the colormap
 def makevertices():
     v = []
     for i in range(49):
@@ -263,6 +221,88 @@ def makevertices():
 
 
 
+
+########## VECTOR COLORING
+# direction_to_color: Set the current color by mapping a direction vector (x,y), using
+#                    the color mapping method 'method'. If method==1, map the vector direction
+#                    using a rainbow colormap. If method==0, simply use the white color
+def direction_to_color(x, y, method):
+    RGB = np.ones(3)
+    if method:
+        f = math.atan2(y, x) / 3.1415927 + 1
+        r = f
+        if r > 1:
+            r = 2 - r
+        g = f + .66667
+        if g > 2:
+            g -= 2
+        if g > 1:
+            g = 2 - g
+        b = f + 2 * .66667
+        if b > 2:
+            b -= 2
+        if b > 1:
+            b = 2 - b
+        RGB = [r, g, b]
+
+    return RGB
+
+
+# returns color depending on magnitude of vector. Depending on colormaptype the type
+#       of coloring is decided (0->white, 1->rainbow, 2-> twotone)
+def magnitude_to_color(x, y, colormaptype):
+    RGB = np.ones(3)
+    mag = np.sqrt(x * x + y * y)
+
+    mag = scaling_factor_mag * mag + clamp_factor_mag
+    if mag > 1:
+        mag = 1
+    if mag < 0:
+        mag = 0
+    if colormaptype == 0:
+        RGB = [mag, mag, mag]
+    elif colormaptype == 1:
+        RGB = rainbow(mag)
+    elif colormaptype == 2:
+        RGB = twotone(mag)
+
+    return RGB
+
+
+# functions that draws cones as glyphs
+def drawGlyph(x, y, vx, vy, size):
+    size += 5
+    glBegin(GL_TRIANGLES)
+    #size = 10
+    #glColor3f(color[0], color[1], color[2])
+    glVertex2f(x + vx, y + vy)
+    glVertex2f(x - 10/DIM * vy, y + 10/DIM * vx)
+    glVertex2f(x + 10/DIM * vy, y - 10/DIM * vx)
+    glEnd()
+
+# function that draws arrows as glyphs
+def drawArrow(x, y, vx, vy, size):
+    size+=5
+    glBegin(GL_LINES)
+    glVertex2f(x + vx, y + vy)
+    glVertex2f(x, y)
+    glEnd()
+    glBegin(GL_TRIANGLES)
+    #glColor3f(color[0], color[1], color[2])
+    glVertex2f(x + vx, y + vy)
+    glVertex2f((x+0.5*vx) - 2*(size / DIM) * vy, (y+0.5*vy) + 2*(size / DIM) * vx)
+    glVertex2f((x+0.5*vx) + 2*(size / DIM) * vy, (y+0.5*vy) - 2*(size / DIM) * vx)
+    glEnd()
+
+
+
+
+
+##### USER INPUT
+
+
+# gets the drag movement of the mouse and changes the simulation values
+#       according to these movements
 def drag(mx, my):
     # lmx = 0
     # lmy = 0
@@ -305,16 +345,9 @@ def drag(mx, my):
     # print(colors)
 
 
-def reshape(w, h):
-    glViewport(0, 0, w, h)
-    glMatrixMode(GL_PROJECTION)
-    glLoadIdentity()
-    gluOrtho2D(0.0, w, 0.0, h)
-    winWidth = w
-    winHeight = h
 
-
-
+# function that gets the keyboard input, which is used for controlling the parameters
+#       of the simulation.
 def keyboard(key):
     global clamp_color
     if key == pygame.K_t:
@@ -352,10 +385,7 @@ def keyboard(key):
         draw_glyphs += 1
         if draw_glyphs > 3:
             draw_glyphs = 0
-        # draw_vecs = not draw_vecs
-        # draw_glyphs = not draw_glyphs
-        # if not draw_vecs:
-            # draw_smoke = True
+
     elif key == pygame.K_i:
         global scalar_col
         scalar_col += 1
@@ -428,6 +458,15 @@ def drawArrow(x, y, vx, vy, size, color):
     glVertex2f((x+0.5*vx) - 2*(size / DIM) * vy, (y+0.5*vy) + 2*(size / DIM) * vx)
     glVertex2f((x+0.5*vx) + 2*(size / DIM) * vy, (y+0.5*vy) - 2*(size / DIM) * vx)
     glEnd()
+def reshape(w, h):
+    glViewport(0, 0, w, h)
+    glMatrixMode(GL_PROJECTION)
+    glLoadIdentity()
+    gluOrtho2D(0.0, w, 0.0, h)
+    winWidth = w
+    winHeight = h
+
+
 
 def main():
     print("Fluid Flow Simulation and Visualization\n")
