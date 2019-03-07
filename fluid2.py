@@ -372,7 +372,7 @@ def drag(mx, my):
     drag.lmy = my
 
 
-def performAction(action):
+def performAction(message):
     global vec_scale
     global color_dir
     global color_mag_v
@@ -387,6 +387,10 @@ def performAction(action):
     global NLEVELS
     global level
     global n_glyphs
+    global scale
+
+    a = message.split(':')
+    action = a[0]
 
     if action == Action.DT_DOWN.name:
         sim.dt -= 0.001
@@ -445,6 +449,8 @@ def performAction(action):
         n_glyphs += 5
         if n_glyphs > 50:
             n_glyphs = 5
+    elif action == Action.SET_SCALE.name:
+        scale = float(a[1])
     elif action == Action.QUIT.name:
         sys.exit()
 

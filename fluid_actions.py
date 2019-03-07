@@ -42,3 +42,5 @@ class Action(enum.Enum):
     GLYPH_CHANGE_N  = 36
 
     QUIT = 37
+
+    SET_SCALE = 38
