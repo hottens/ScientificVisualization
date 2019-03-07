@@ -123,7 +123,8 @@ def bw(cv):
     if cv > clamp_color[1]:
         cv = clamp_color[1]
     cv = scalecolor(cv)
-    return RGB.fill(cv)
+    RGB = [cv, cv, cv]
+    return RGB
 
 
 
