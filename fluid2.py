@@ -40,6 +40,7 @@ level = 0
 hue = 0.0
 sat = 1.0
 dragbool = False
+scale = 1
 
 scaling_factor_mag = 2
 clamp_factor_mag = 0.02
@@ -110,6 +111,20 @@ def rgb2hsv(r, g, b):
 
     return h, s, v
 
+def scalecolor(cv):
+    return cv**scale
+
+
+def bw(cv):
+    RGB = np.zeros(3)
+    global clamp_color
+    if cv < clamp_color[0]:
+        cv = clamp_color[0]
+    if cv > clamp_color[1]:
+        cv = clamp_color[1]
+    cv = scalecolor(cv)
+    return RGB.fill(cv)
+
 # return color from rainbow colormap based on a value
 def rainbow(cv):
     dx = 0.8
@@ -118,6 +133,7 @@ def rainbow(cv):
         cv = clamp_color[0]
     if cv > clamp_color[1]:
         cv = clamp_color[1]
+    cv = scalecolor(cv)
 
     cv = (6 - 2 * dx) * cv + dx
     R = max(0.0, (3 - np.fabs(cv - 4) - np.fabs(cv - 5)) / 2)
@@ -145,6 +161,7 @@ def twotone(value):
     if value > clamp_color[1]:
         value = clamp_color[1]
 
+    value = scalecolor(value)
     # nog scalen!!
 
     R = value * (c1[0] - c2[0]) + c2[0]
@@ -171,7 +188,7 @@ def set_colormap(vy):
         vy = vy / NLEVELS
 
     if scalar_col == COLOR_BLACKWHITE:
-        RGB.fill(vy)
+        RGB = bw(cv)
     elif scalar_col == COLOR_RAINBOW:
         RGB = rainbow(vy)
     elif scalar_col == COLOR_TWOTONE:
