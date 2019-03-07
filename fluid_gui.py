@@ -5,15 +5,14 @@ import tkinter
 top = tkinter.Tk()
 
 
-def helloCallBack():
+def callBack(action):
     clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     clientsocket.connect(('localhost', 8089))
-    action = Action.GLYPH_CHANGE_N
     clientsocket.send(action.name.encode('utf-8'))
     print(action.name.encode('utf-8'))
 
 
-B = tkinter.Button(top, text ="Hello", command = helloCallBack)
+B = tkinter.Button(top, text ="Hello", command = lambda: callBack(Action.GLYPH_CHANGE_N))
 
 B.pack()
 top.mainloop()
