@@ -1,18 +1,30 @@
 import numpy as np
 import sys
 import math
+import queue
 import simulation
+import socket
+from fluid_actions import Action
 import pygame
 from OpenGL.GL import *
 from ctypes import *
+from threading import Thread
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
 
+# Server
+serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+serversocket.bind(('localhost', 8089))
+serversocket.listen(5)  # become a server socket, maximum 5 connections
+
 # Simulation
 DIM = 50
 sim = simulation.Simulation(DIM)
+
+# actions
+q = queue.Queue(maxsize=20)
 
 # Visualization
 frozen = False
@@ -333,90 +345,145 @@ def drag(mx, my):
     sim.field[-1, X, Y] = 10.0
     drag.lmx = mx
     drag.lmy = my
-    # print([dx, dy])
-    # print(colors)
+
+
+def performAction(action):
+    global vec_scale
+    global color_dir
+    global color_mag_v
+    global magdir
+    global clamp_color
+    global draw_smoke
+    global draw_glyphs
+    global colormap_type
+    global scalar_col
+    global frozen
+    global hue
+    global NLEVELS
+    global level
+    global n_glyphs
+
+    if action == Action.DT_DOWN.name:
+        sim.dt -= 0.001
+    elif action == Action.DT_UP.name:
+        sim.dt += 0.001
+    elif action == Action.COLOR_DIR.name:
+        color_dir = not color_dir
+    elif action == Action.COLOR_MAG_CHANGE.name:
+        color_mag_v += 1
+        if color_mag_v > 2:
+            color_mag_v = 0
+    elif action == Action.MAG_DIR.name:
+        magdir = not magdir
+    elif action == Action.VEC_SCALE_UP.name:
+        vec_scale *= 1.2
+    elif action == Action.VEC_SCALE_DOWN.name:
+        vec_scale *= 0.8
+    elif action == Action.VISC_UP.name:
+        sim.visc *= 5
+    elif action == Action.VISC_DOWN.name:
+        sim.visc *= 0.2
+    elif action == Action.DRAW_SMOKE.name:
+        draw_smoke = not draw_smoke
+    elif action == Action.GLYPH_CHANGE.name:
+        draw_glyphs += 1
+        if draw_glyphs > 3:
+            draw_glyphs = 0
+    elif action == Action.SCALAR_COLOR_CHANGE.name:
+        scalar_col += 1
+        if scalar_col > COLOR_TWOTONE:
+            scalar_col = COLOR_BLACKWHITE
+    elif action == Action.COLORMAP_CHANGE.name:
+        colormap_type += 1
+        if colormap_type > 2:
+            colormap_type = 0
+    elif action == Action.FREEZE.name:
+        frozen = not frozen
+    elif action == Action.CLAMP_COLOR_MIN_UP.name:
+        clamp_color[0] = min(clamp_color[0]+0.1, clamp_color[1]-0.1)
+    elif action == Action.CLAMP_COLOR_MAX_DOWN.name:
+        clamp_color[0] = max(clamp_color[0]-0.1, 0)
+    elif action == Action.CLAMP_COLOR_MAX_UP.name:
+        clamp_color[1] = max(clamp_color[1]+0.1, 1)
+    elif action == Action.CLAMP_COLOR_MAX_DOWN.name:
+        clamp_color[1] = min(clamp_color[1]-0.1, clamp_color[0]+0.1)
+    elif action == Action.CHANGE_HUE.name:
+        hue += 1 / 6
+        if hue >= 1.0:
+            hue = 0
+    elif action == Action.CHANGE_LEVELS.name:
+        level += 1
+        if level > 3:
+            level = 0
+        NLEVELS = levels[level]
+    elif action == Action.GLYPH_CHANGE_N.name:
+        n_glyphs += 5
+        if n_glyphs > 50:
+            n_glyphs = 5
+    elif action == Action.QUIT.name:
+        sys.exit()
 
 
 # function that gets the keyboard input, which is used for controlling the parameters
 #       of the simulation.
 def keyboard(key):
-    global clamp_color
+    global q
     if key == pygame.K_t:
-        sim.dt -= 0.001
+        q.put(Action.DT_DOWN.name)
     elif key == pygame.K_y:
-        sim.dt += 0.001
+        q.put(Action.DT_UP.name)
     elif key == pygame.K_c:
-        global color_dir
-        color_dir = not color_dir
+        q.put(Action.COLOR_DIR.name)
     elif key == pygame.K_v:
-        global color_mag_v
-        color_mag_v += 1
-        if color_mag_v > 2:
-            color_mag_v = 0
+        q.put(Action.COLOR_MAG_CHANGE.name)
     elif key == pygame.K_m:
-        global magdir
-        magdir = not magdir
+        q.put(Action.MAG_DIR.name)
     elif key == pygame.K_a:
-        global vec_scale
-        vec_scale *= 1.2
+        q.put(Action.VEC_SCALE_UP.name)
     elif key == pygame.K_s:
-        vec_scale *= 0.8
+        q.put(Action.VEC_SCALE_DOWN.name)
     elif key == pygame.K_z:
-        sim.visc *= 5
+        q.put(Action.VISC_UP.name)
     elif key == pygame.K_x:
-        sim.visc *= 0.2
+        q.put(Action.VISC_DOWN.name)
     elif key == pygame.K_n:
-        global draw_smoke
-        draw_smoke = not draw_smoke
+        q.put(Action.DRAW_SMOKE.name)
     elif key == pygame.K_u:
-        global draw_glyphs
-        draw_glyphs += 1
-        if draw_glyphs > 3:
-            draw_glyphs = 0
+        q.put(Action.GLYPH_CHANGE.name)
     elif key == pygame.K_i:
-        global scalar_col
-        scalar_col += 1
-        if scalar_col > COLOR_TWOTONE:
-            scalar_col = COLOR_BLACKWHITE
+        q.put(Action.SCALAR_COLOR_CHANGE.name)
     elif key == pygame.K_j:
-        global colormap_type
-        colormap_type += 1
-        if colormap_type > 2:
-            colormap_type = 0
+        q.put(Action.COLORMAP_CHANGE.name)
     elif key == pygame.K_f:
-        global frozen
-        frozen = not frozen
+        q.put(Action.FREEZE.name)
     elif key == pygame.K_1:
-        clamp_color[0] += 0.1
-        clamp_color[0] = max(clamp_color[0], 0)
+        q.put(Action.CLAMP_COLOR_MIN_UP.name)
     elif key == pygame.K_2:
-        clamp_color[0] -= 0.1
-        clamp_color[0] = max(clamp_color[0], 0)
+        q.put(Action.CLAMP_COLOR_MIN_DOWN.name)
     elif key == pygame.K_3:
-        clamp_color[1] += 0.1
-        clamp_color[1] = min(clamp_color[1], 1)
+        q.put(Action.CLAMP_COLOR_MAX_UP.name)
     elif key == pygame.K_4:
-        clamp_color[1] -= 0.1
-        clamp_color[1] = min(clamp_color[1], 1)
+        q.put(Action.CLAMP_COLOR_MAX_DOWN.name)
     elif key == pygame.K_h:
-        global hue
-        hue += 1 / 6
-        if hue >= 1.0:
-            hue = 0
+        q.put(Action.CHANGE_HUE.name)
     elif key == pygame.K_l:
-        global NLEVELS
-        global level
-        level += 1
-        if level > 3:
-            level = 0
-        NLEVELS = levels[level]
+        q.put(Action.CHANGE_LEVELS.name)
     elif key == pygame.K_g:
-        global n_glyphs
-        n_glyphs += 5
-        if n_glyphs > 50:
-            n_glyphs = 5
+        q.put(Action.GLYPH_CHANGE_N.name)
     elif key == pygame.K_q:
-        sys.exit()
+        q.put(Action.QUIT.name)
+
+
+def getGuiInput():
+    global q
+    # connect to socket
+    while True:
+        connection, address = serversocket.accept()
+        buf = connection.recv(64)
+        if len(buf) > 0:
+            q.put(buf.decode('utf_8'))
+            print(buf.decode('utf_8'))
+        connection.close()
 
 
 def main():
@@ -440,6 +507,9 @@ def main():
     print("q:     quit\n\n")
 
     clock = pygame.time.Clock()
+
+    thread = Thread(target = getGuiInput)
+    thread.start()
 
     vertices = makevertices()
     global colors
@@ -474,6 +544,11 @@ def main():
             drag(mx, my)
 
         glClear(GL_COLOR_BUFFER_BIT)
+
+        while not q.empty():
+            performAction(q.get())
+            #print(q.get())
+
         sim.do_one_simulation_step(frozen)
         vis_color()
 
