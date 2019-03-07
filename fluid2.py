@@ -235,18 +235,20 @@ def makevertices():
     v = []
     for i in range(49):
         for j in range(49):
-            p0 = [i, j, 0]
-            p1 = [i, j + 1, 0]
-            p2 = [i + 1, j + 1, 0]
-            p3 = [i + 1, j, 0]
+            p0 = [i/ (49 / 2) - 1, j/ (49 / 1.8) - 0.8, 0]
+            p1 = [i/ (49 / 2) - 1, (j + 1)/ (49 / 1.8) - 0.8, 0]
+            p2 = [(i + 1)/ (49 / 2) - 1, (j + 1)/ (49 / 1.8) - 0.8, 0]
+            p3 = [(i + 1)/ (49 / 2) - 1, j/ (49 / 1.8) - 0.8, 0]
             v += p0 + p1 + p2 + p0 + p2 + p3
     v = np.array(v)
-    v = v / (48 / 2) - 1
+    # v = v / (49 / 2) - 1
     v = v.tolist()
     return v
 
 # def makelegend():
-
+#     vertices_leg =
+#     glDrawArrays(GL_RECTANGLES,0,)
+#     pass
 
 
 
@@ -330,6 +332,7 @@ def drawArrow(x, y, vx, vy, size, color):
 # gets the drag movement of the mouse and changes the simulation values
 #       according to these movements
 def drag(mx, my):
+    my = my
     # lmx = 0
     # lmy = 0
     try:
@@ -600,9 +603,9 @@ def main():
                         color = direction_to_color(sim.field[0, x, y], sim.field[1, x, y], color_dir)
                     glColor3f(color[0], color[1], color[2])
 
-                    glVertex2f((((i+0.5)*step / (49 / 2)) - 1), (((j+0.5)*step / (49 / 2)) - 1))
+                    glVertex2f((((i+0.5)*step / (49 / 2)) - 1), (((j+0.5)*step / (49 / 1.8)) - 0.8))
                     glVertex2f((((i+0.5)*step / (49 / 2)) - 1) + vec_scale * sim.field[0, x, y],
-                               ((((j+0.5)*step / (49 / 2)) - 1)) + vec_scale * sim.field[1, x, y])
+                               ((((j+0.5)*step / (49 / 1.8)) - 0.8)) + vec_scale * sim.field[1, x, y])
             glEnd()
 
         if draw_glyphs >= 2:
@@ -615,7 +618,7 @@ def main():
                     vx = step * sim.field[0, round(x), round(y)]
                     vy = step * sim.field[1, round(x), round(y)]
                     x2 = (i+0.5)*step / ((DIM - 1) / 2) - 1
-                    y2 = (j+0.5)*step / ((DIM - 1) / 2) - 1
+                    y2 = (j+0.5)*step / ((DIM - 1) / 1.8) - 0.8
 
                     color = np.ones(3)
                     if magdir:
@@ -633,8 +636,8 @@ def main():
 
 
 pygame.init()
-screen = pygame.display.set_mode((winWidth, winHeight+50), pygame.OPENGL | pygame.DOUBLEBUF, 24)
-glViewport(0, 0, winWidth, winHeight)
+screen = pygame.display.set_mode((winWidth, winHeight+55), pygame.OPENGL | pygame.DOUBLEBUF, 24)
+glViewport(0, 0, winWidth, winHeight+55)
 glClearColor(0.0, 0.5, 0.5, 1.0)
 glEnableClientState(GL_VERTEX_ARRAY)
 
