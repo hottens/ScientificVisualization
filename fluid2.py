@@ -40,7 +40,6 @@ level = 0
 hue = 0.0
 sat = 1.0
 dragbool = False
-scale = 1
 
 scaling_factor_mag = 2
 clamp_factor_mag = 0.02
@@ -59,6 +58,7 @@ COLOR_BLACKWHITE = 0
 COLOR_RAINBOW = 1
 COLOR_TWOTONE = 2
 scalar_col = 0
+scale = 1.0
 
 
 ### Visualization
@@ -125,6 +125,8 @@ def bw(cv):
     cv = scalecolor(cv)
     return RGB.fill(cv)
 
+
+
 # return color from rainbow colormap based on a value
 def rainbow(cv):
     dx = 0.8
@@ -134,7 +136,6 @@ def rainbow(cv):
     if cv > clamp_color[1]:
         cv = clamp_color[1]
     cv = scalecolor(cv)
-
     cv = (6 - 2 * dx) * cv + dx
     R = max(0.0, (3 - np.fabs(cv - 4) - np.fabs(cv - 5)) / 2)
     G = max(0.0, (4 - np.fabs(cv - 2) - np.fabs(cv - 4)) / 2)
@@ -160,7 +161,6 @@ def twotone(value):
         value = clamp_color[0]
     if value > clamp_color[1]:
         value = clamp_color[1]
-
     value = scalecolor(value)
     # nog scalen!!
 
@@ -188,7 +188,7 @@ def set_colormap(vy):
         vy = vy / NLEVELS
 
     if scalar_col == COLOR_BLACKWHITE:
-        RGB = bw(cv)
+        RGB = bw(vy)
     elif scalar_col == COLOR_RAINBOW:
         RGB = rainbow(vy)
     elif scalar_col == COLOR_TWOTONE:
@@ -243,6 +243,10 @@ def makevertices():
     v = v / (48 / 2) - 1
     v = v.tolist()
     return v
+
+def makelegend():
+
+
 
 
 ########## VECTOR COLORING
@@ -628,7 +632,7 @@ def main():
 
 
 pygame.init()
-screen = pygame.display.set_mode((winWidth, winHeight), pygame.OPENGL | pygame.DOUBLEBUF, 24)
+screen = pygame.display.set_mode((winWidth, winHeight+50), pygame.OPENGL | pygame.DOUBLEBUF, 24)
 glViewport(0, 0, winWidth, winHeight)
 glClearColor(0.0, 0.5, 0.5, 1.0)
 glEnableClientState(GL_VERTEX_ARRAY)
