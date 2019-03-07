@@ -244,7 +244,7 @@ def makevertices():
     v = v.tolist()
     return v
 
-def makelegend():
+# def makelegend():
 
 
 
