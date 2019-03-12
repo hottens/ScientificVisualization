@@ -34,8 +34,8 @@ color_dir = False
 color_mag_v = 0
 colormap_type = 0
 scale_velo_map = 5
-NLEVELS = 2 ^ 256
-levels = [2 ^ 256, 20, 10, 5]
+NLEVELS = 256 ^ 3
+levels = [256 ^ 3, 20, 10, 5]
 level = 0
 hue = 0.0
 sat = 1.0
@@ -183,7 +183,7 @@ def twotone(value):
 def set_colormap(vy):
     RGB = np.zeros(3)
     global scalar_col
-    if not NLEVELS == 2 ^ 256:
+    if not NLEVELS == 256^3:
         vy = vy * NLEVELS
         vy = int(vy)
         vy = vy / NLEVELS
@@ -245,10 +245,45 @@ def makevertices():
     v = v.tolist()
     return v
 
-# def makelegend():
-#     vertices_leg =
-#     glDrawArrays(GL_RECTANGLES,0,)
-#     pass
+def makelegend():
+    vertices_leg = []
+    colors_leg = []
+
+    for i in range(499):
+        p0 = [i    /(499/2) - 1,-1.0, 0]
+        p1 = [(i+1)/(499/2) - 1,-1.0, 0]
+        p2 = [(i+1)/(499/2) - 1,-0.8, 0]
+        p3 = [i    /(499/2) - 1,-0.8, 0]
+        vertices_leg += p0 + p1 + p2 + p0 + p2 + p3
+        colval = set_colormap(i/499)
+        # colval = colval.tolist()
+        colors_leg += colval*6
+    vertices_leg = np.array(vertices_leg)
+    vertices_leg = vertices_leg.tolist()
+
+    # colors_leg = np.array(colors_leg)
+
+
+
+
+
+    leg_vbo = glGenBuffers(1)
+    colleg_vbo = glGenBuffers(1)
+
+
+    glEnableClientState(GL_COLOR_ARRAY)
+    glBindBuffer(GL_ARRAY_BUFFER, leg_vbo)
+    glBufferData(GL_ARRAY_BUFFER, len(vertices_leg) * 4, (c_float * len(vertices_leg))(*vertices_leg), GL_STATIC_DRAW)
+    glVertexPointer(3, GL_FLOAT,0,None)
+
+
+    glBindBuffer(GL_ARRAY_BUFFER, colleg_vbo)
+    glBufferData(GL_ARRAY_BUFFER, len(colors_leg) * 4, (c_float * len(colors_leg))(*colors_leg), GL_STATIC_DRAW)
+
+
+    glColorPointer(3,GL_FLOAT,0,None)
+    glDrawArrays(GL_TRIANGLES,0,2994)
+
 
 
 
@@ -532,7 +567,7 @@ def main():
     print("m:     toggle thru scalar coloring\n")
     print("n:     toggle thru what is displayed on the colormap (density, velocity, force)\n")
     print("a:     toggle the animation on/off\n")
-    print("l:     change number of colors in colormap (2**256, 20, 10, 5) \n ")
+    print("l:     change number of colors in colormap (256**3, 20, 10, 5) \n ")
     print("h:     change hue \n")
 
     print("q:     quit\n\n")
@@ -594,6 +629,8 @@ def main():
         glColorPointer(3, GL_FLOAT, 0, None)
 
         glDrawArrays(GL_TRIANGLES, 0, 43218)
+
+        makelegend()
         if draw_glyphs == 1:
             glBegin(GL_LINES)
             step = DIM/n_glyphs
