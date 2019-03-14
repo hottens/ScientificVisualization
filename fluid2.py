@@ -431,12 +431,16 @@ def performAction(message):
         sim.dt -= 0.001
     elif action == Action.DT_UP.name:
         sim.dt += 0.001
+    elif action == Action.SET_DT.name:
+        sim.dt = float(a[1])
     elif action == Action.COLOR_DIR.name:
         color_dir = not color_dir
     elif action == Action.COLOR_MAG_CHANGE.name:
         color_mag_v += 1
         if color_mag_v > 2:
             color_mag_v = 0
+    elif action == Action.SET_COLOR_MAG.name:
+        color_mag_v = float(['vector coloring bw', 'vector coloring rainbow', 'vector coloring twotone'].index(a[1]))
     elif action == Action.MAG_DIR.name:
         magdir = not magdir
     elif action == Action.VEC_SCALE_UP.name:

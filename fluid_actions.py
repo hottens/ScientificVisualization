@@ -44,3 +44,5 @@ class Action(enum.Enum):
     QUIT = 37
 
     SET_SCALE = 38
+    SET_DT = 39
+    SET_COLOR_MAG = 40
