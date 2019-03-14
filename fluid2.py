@@ -32,7 +32,7 @@ winWidth = 500
 winHeight = 500
 color_dir = False
 color_mag_v = 0
-colormap_type = 0
+colormap_type = 3
 scale_velo_map = 5
 NLEVELS = 256 ^ 3
 levels = [256 ^ 3, 20, 10, 5]
@@ -222,10 +222,13 @@ def vis_color():
     colormaptobe = np.zeros((50, 50))
     if colormap_type == 0:
         colormaptobe = sim.field[-1, :, :]
+
     elif colormap_type == 1:
         colormaptobe = scale_velo_map * np.sqrt(sim.field[0, :, :] * sim.field[0, :, :] + sim.field[1, :, :] * sim.field[1, :, :])
     elif colormap_type == 2:
         colormaptobe = np.sqrt(sim.forces[0, :, :] * sim.forces[0, :, :] + sim.forces[1, :, :] * sim.forces[1, :, :])
+    elif colormap_type == 3:
+        colormaptobe = 50 * sim.divfield[:, :] +0.5
     global colors
     colors = makecolormap(colormaptobe)
 

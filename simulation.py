@@ -13,13 +13,18 @@ class Simulation:
         self.field = np.zeros((3, DIM, DIM))  # vx, vy, rho
         self.field0 = np.zeros((3, DIM, DIM))
         self.field0c = np.zeros((2, int(DIM * (DIM / 2 + 1))), dtype=np.complex_)  # vx0, vy0, rho0
+
         self.forces = np.zeros((2, DIM, DIM))  # fx, fy
+
+        self.divfield = np.zeros((DIM, DIM))
+        self.divforces = np.zeros((DIM,DIM))
 
     def do_one_simulation_step(self, frozen):
         if not frozen:
             self.set_forces()
             self.solve()
             self.diffuse_matter()
+            self.calc_divergence()
 
     def set_forces(self):
         self.field0[-1, :, :] = self.field[-1, :, :] * 0.9
@@ -119,6 +124,14 @@ class Simulation:
                 # t = 1 - t
                 self.field[-1, i, j] = (1 - s) * ((1 - t) * self.field0[-1, i0, j0] + t * self.field0[-1, i0, j1]) + s * (
                         (1 - t) * self.field0[-1, i1, j0] + t * self.field0[-1, i1, j1])
+
+
+    def calc_divergence(self):
+        DIM = self.DIM
+        for i in range(0,DIM):
+            for j in range(0,DIM):
+                self.divfield[i,j] = -( self.field[0,i-1,j]-self.field[0,i,j] + self.field[0,i,j] - self.field[0,(i+1)%DIM,j] + self.field[1,i,j-1]-self.field[1,i,j] +  self.field[1,i,j] - self.field[1,i,(j+1)%DIM])
+                self.divforces[i,j] = -(self.forces[0,i-1,j]-self.forces[0,i,j] + self.forces[0,(i+1)%DIM,j]-self.forces[0,i,j] + self.forces[1,i,j-1]-self.forces[1,i,j] + self.forces[1,i,(j+1)%DIM]- self.forces[1,i,j])
 
 
 def clamp(x):
