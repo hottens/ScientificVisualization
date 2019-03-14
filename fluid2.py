@@ -439,8 +439,6 @@ def performAction(message):
         color_mag_v += 1
         if color_mag_v > 2:
             color_mag_v = 0
-    elif action == Action.SET_COLOR_MAG.name:
-        color_mag_v = float(['vector coloring bw', 'vector coloring rainbow', 'vector coloring twotone'].index(a[1]))
     elif action == Action.MAG_DIR.name:
         magdir = not magdir
     elif action == Action.VEC_SCALE_UP.name:
@@ -461,6 +459,12 @@ def performAction(message):
         scalar_col += 1
         if scalar_col > COLOR_TWOTONE:
             scalar_col = COLOR_BLACKWHITE
+    elif action == Action.COLOR_MAG_BLACK.name:
+        scalar_col = COLOR_BLACKWHITE
+    elif action == Action.COLOR_MAG_RAINBOW.name:
+        scalar_col = COLOR_RAINBOW
+    elif action == Action.COLOR_MAG_TWOTONE.name:
+        scalar_col = COLOR_TWOTONE
     elif action == Action.COLORMAP_CHANGE.name:
         colormap_type += 1
         if colormap_type > 2:
