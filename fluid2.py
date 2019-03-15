@@ -59,9 +59,122 @@ COLOR_RAINBOW = 1
 COLOR_TWOTONE = 2
 scalar_col = 0
 scale = 1.0
+iso = True
+iso_max = 0.9
+iso_min = 0.6
+iso_n = 4
+iso_col = 0
+
+
+
+iso_dict = {'0000':0,'0001':1,'0010':2,'0011':3,'0100':4,'0101':5,'0110':6, '0111':7, '1000':8, '1001':9, '1010':10, '1011':11, '1100':12, '1101':13, '1110':14, '1111':15}
 
 
 ### Visualization
+
+def isolines():
+    max = iso_max
+    min = iso_min
+    n = iso_n
+    if max < min:
+        return
+    vallist = []
+    if n == 1:
+        vallist = [min]
+    else:
+        for i in range(0,n):
+            vallist += [min + i* (max-min)/(n-1)]
+
+    glBegin(GL_LINES)
+    for val in vallist:
+        threshold_image = np.zeros((DIM,DIM))
+        for i in range(0,DIM):
+            for j in range(0,DIM):
+                if sim.field[-1,i,j] > val:
+                    threshold_image[i,j] = 1
+
+        if iso_col == COLOR_BLACKWHITE:
+            cv = bw(val)
+        elif iso_col == COLOR_RAINBOW:
+            cv = rainbow(val)
+        elif iso_col == COLOR_TWOTONE:
+            cv = twotone(val)
+        else:
+            cv = [1,1,1]
+        for i in range(0,DIM-1):
+            for j in range(0, DIM -1):
+                bincode = ""
+                if threshold_image[i,j] == 0:
+                    bincode += '0'
+                else:
+                    bincode += '1'
+                if threshold_image[i+1,j] == 0:
+                    bincode += '0'
+                else:
+                    bincode += '1'
+                if threshold_image[i+1,j+1] == 0:
+                    bincode += '0'
+                else:
+                    bincode += '1'
+                if threshold_image[i,j+1] == 0:
+                    bincode += '0'
+                else:
+                    bincode += '1'
+
+                if iso_dict[bincode] == 1 or iso_dict[bincode] ==14:
+                    x1 = i + (sim.field[-1,i,j+1] - val)/( sim.field[-1,i,j+1]-sim.field[-1,i+1,j+1])
+                    y1 = j + 1
+                    x2 = i
+                    y2 = j + (sim.field[-1,i,j] - val)/ (sim.field[-1,i,j]-sim.field[-1,i,j+1])
+                elif iso_dict[bincode] == 2 or iso_dict[bincode] ==13:
+                    x1 = i + (sim.field[-1,i,j+1] - val)/ (sim.field[-1,i,j+1]-sim.field[-1,i+1,j+1])
+                    y1 = j + 1
+                    x2 = i + 1
+                    y2 = j + (sim.field[-1,i+1,j] - val)/ (sim.field[-1,i+1,j]-sim.field[-1,i+1,j+1])
+                elif iso_dict[bincode] == 3 or iso_dict[bincode] ==12:
+                    x1 = i
+                    y1 = j + (sim.field[-1,i,j] - val)/ (sim.field[-1,i,j]-sim.field[-1,i,j+1])
+                    x2 = i + 1
+                    y2 = j + (sim.field[-1,i+1,j] - val)/ (sim.field[-1,i+1,j]-sim.field[-1,i+1,j+1])
+                elif iso_dict[bincode] == 4 or iso_dict[bincode] ==11 or iso_dict[bincode] ==10:
+                    x1 = i + (sim.field[-1,i,j] - val)/ (sim.field[-1,i,j]-sim.field[-1,i+1,j])
+                    y1 = j
+                    x2 = i + 1
+                    y2 = j + (sim.field[-1,i+1,j] - val)/ (sim.field[-1,i+1,j]-sim.field[-1,i+1,j+1])
+                elif iso_dict[bincode] == 6 or iso_dict[bincode] == 9:
+                    x1 = i + (sim.field[-1,i,j] - val)/ (sim.field[-1,i,j]-sim.field[-1,i+1,j])
+                    y1 = j
+                    x2 = i + (sim.field[-1,i,j+1] - val)/( sim.field[-1,i,j+1]-sim.field[-1,i+1,j+1])
+                    y2 = j + 1
+                elif iso_dict[bincode] == 7 or iso_dict[bincode] == 8 or iso_dict[bincode] == 5:
+                    x1 = i + (sim.field[-1,i,j] - val)/ (sim.field[-1,i,j]-sim.field[-1,i+1,j])
+                    y1 = j
+                    x2 = i
+                    y2 = j + (sim.field[-1,i,j] - val)/ (sim.field[-1,i,j]-sim.field[-1,i,j+1])
+                if iso_dict[bincode] == 5:
+                    x12 = i + (sim.field[-1,i,j+1] - val)/ (sim.field[-1,i,j+1]-sim.field[-1,i+1,j+1])
+                    y12 = j + 1
+                    x22 = i + 1
+                    y22 = j + (sim.field[-1,i+1,j] - val)/ (sim.field[-1,i+1,j]-sim.field[-1,i+1,j+1])
+                elif iso_dict[bincode] == 10:
+                    x12 = i + (sim.field[-1,i,j+1] - val)/( sim.field[-1,i,j+1]-sim.field[-1,i+1,j+1])
+                    y12 = j + 1
+                    x22 = i
+                    y22 = j + (sim.field[-1,i,j] - val)/ (sim.field[-1,i,j]-sim.field[-1,i,j+1])
+
+
+                if not iso_dict[bincode] == 0 or iso_dict[bincode] == 15:
+                    glColor3f(cv[0],cv[1],cv[2])
+                    glVertex2f((x1/(50/2))-1, (y1/(50/1.8))-0.8)
+                    glVertex2f((x2/(50/2))-1, (y2/(50/1.8))-0.8)
+
+                if iso_dict[bincode] == 5 or iso_dict[bincode] == 10:
+                    glColor3f(cv[0],cv[1],cv[2])
+                    glVertex2f((x12/(50/2))-1, (y12/(50/1.8))-0.8)
+                    glVertex2f((x22/(50/2))-1, (y22/(50/1.8))-0.8)
+    glEnd()
+
+
 
 ####### COLORMAPPING
 
@@ -426,6 +539,7 @@ def performAction(message):
     global level
     global n_glyphs
     global scale
+    global iso_col
 
     a = message.split(':')
     action = a[0]
@@ -470,7 +584,7 @@ def performAction(message):
         scalar_col = COLOR_TWOTONE
     elif action == Action.COLORMAP_CHANGE.name:
         colormap_type += 1
-        if colormap_type > 2:
+        if colormap_type > 3:
             colormap_type = 0
     elif action == Action.FREEZE.name:
         frozen = not frozen
@@ -497,6 +611,10 @@ def performAction(message):
             n_glyphs = 5
     elif action == Action.SET_SCALE.name:
         scale = float(a[1])
+    elif action == Action.CHANGE_ISO_COL.name:
+        iso_col += 1
+        if iso_col > 4:
+            iso_col = 0
     elif action == Action.QUIT.name:
         sys.exit()
 
@@ -547,6 +665,8 @@ def keyboard(key):
         q.put(Action.CHANGE_LEVELS.name)
     elif key == pygame.K_g:
         q.put(Action.GLYPH_CHANGE_N.name)
+    elif key == pygame.K_7:
+        q.put(Action.CHANGE_ISO_COL.name)
     elif key == pygame.K_q:
         q.put(Action.QUIT.name)
 
@@ -685,6 +805,8 @@ def main():
                         drawGlyph(x2, y2, vx, vy, size, color)
                     else:
                         drawArrow(x2, y2, vx, vy, size, color)
+        if iso:
+            isolines()
 
         pygame.display.flip()
 

@@ -46,3 +46,5 @@ class Action(enum.Enum):
     SET_SCALE = 38
     SET_DT = 39
     SET_COLOR_MAG = 40
+
+    CHANGE_ISO_COL = 41
