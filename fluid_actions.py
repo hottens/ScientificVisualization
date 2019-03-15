@@ -48,3 +48,10 @@ class Action(enum.Enum):
     SET_COLOR_MAG = 40
 
     CHANGE_ISO_COL = 41
+    SET_ISO_MIN = 42
+    SET_ISO_MAX = 43
+    SET_ISO_N = 44
+    COLOR_ISO_BLACK = 45
+    COLOR_ISO_RAINBOW = 46
+    COLOR_ISO_TWOTONE = 47
+    COLOR_ISO_WHITE = 48

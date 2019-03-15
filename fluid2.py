@@ -60,10 +60,10 @@ COLOR_TWOTONE = 2
 scalar_col = 0
 scale = 1.0
 iso = True
-iso_max = 0.9
-iso_min = 0.6
-iso_n = 4
-iso_col = 0
+iso_max = 1
+iso_min = 0.7
+iso_n = 1
+iso_col = 3
 
 
 
@@ -78,6 +78,8 @@ def isolines():
     n = iso_n
     if max < min:
         return
+    if max == min:
+        n = 1
     vallist = []
     if n == 1:
         vallist = [min]
@@ -540,6 +542,9 @@ def performAction(message):
     global n_glyphs
     global scale
     global iso_col
+    global iso_min
+    global iso_max
+    global iso_n
 
     a = message.split(':')
     action = a[0]
@@ -615,6 +620,21 @@ def performAction(message):
         iso_col += 1
         if iso_col > 4:
             iso_col = 0
+    elif action == Action.SET_ISO_MIN.name:
+        iso_min = float(a[1])
+    elif action == Action.SET_ISO_MAX.name:
+        iso_max = float(a[1])
+    elif action == Action.SET_ISO_N.name:
+        iso_n = int(a[1])
+    elif action == Action.COLOR_ISO_BLACK.name:
+        iso_col = 0
+    elif action == Action.COLOR_ISO_RAINBOW.name:
+        iso_col = 1
+    elif action == Action.COLOR_ISO_TWOTONE.name:
+        iso_col = 2
+    elif action == Action.COLOR_ISO_WHITE.name:
+        iso_col = 3
+
     elif action == Action.QUIT.name:
         sys.exit()
 
