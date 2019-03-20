@@ -4,6 +4,7 @@ import math
 import queue
 import simulation
 import socket
+import time
 from fluid_actions import Action
 import pygame
 from OpenGL.GL import *
@@ -18,6 +19,7 @@ from OpenGL.GLUT import *
 serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 serversocket.bind(('localhost', 8089))
 serversocket.listen(5)  # become a server socket, maximum 5 connections
+keep_connection = True
 
 # Simulation
 DIM = 50
@@ -65,9 +67,8 @@ iso_min = 0.7
 iso_n = 1
 iso_col = 3
 
-
-
-iso_dict = {'0000':0,'0001':1,'0010':2,'0011':3,'0100':4,'0101':5,'0110':6, '0111':7, '1000':8, '1001':9, '1010':10, '1011':11, '1100':12, '1101':13, '1110':14, '1111':15}
+iso_dict = {'0000': 0, '0001': 1, '0010': 2, '0011': 3, '0100': 4, '0101': 5, '0110': 6, '0111': 7, '1000': 8,
+            '1001': 9, '1010': 10, '1011': 11, '1100': 12, '1101': 13, '1110': 14, '1111': 15}
 
 
 ### Visualization
@@ -84,16 +85,12 @@ def isolines():
     if n == 1:
         vallist = [min]
     else:
-        for i in range(0,n):
-            vallist += [min + i* (max-min)/(n-1)]
+        for i in range(0, n):
+            vallist += [min + i * (max - min) / (n - 1)]
 
     glBegin(GL_LINES)
     for val in vallist:
-        threshold_image = np.zeros((DIM,DIM))
-        for i in range(0,DIM):
-            for j in range(0,DIM):
-                if sim.field[-1,i,j] > val:
-                    threshold_image[i,j] = 1
+        threshold_image = sim.field[-1, :, :] > val
 
         if iso_col == COLOR_BLACKWHITE:
             cv = bw(val)
@@ -102,80 +99,72 @@ def isolines():
         elif iso_col == COLOR_TWOTONE:
             cv = twotone(val)
         else:
-            cv = [1,1,1]
-        for i in range(0,DIM-1):
-            for j in range(0, DIM -1):
-                bincode = ""
-                if threshold_image[i,j] == 0:
-                    bincode += '0'
-                else:
-                    bincode += '1'
-                if threshold_image[i+1,j] == 0:
-                    bincode += '0'
-                else:
-                    bincode += '1'
-                if threshold_image[i+1,j+1] == 0:
-                    bincode += '0'
-                else:
-                    bincode += '1'
-                if threshold_image[i,j+1] == 0:
-                    bincode += '0'
-                else:
-                    bincode += '1'
+            cv = [1, 1, 1]
+        for i in range(0, DIM - 1):
+            for j in range(0, DIM - 1):
+                bincode_list = ['0', '0', '0', '0']
+                if threshold_image[i, j]:
+                    bincode_list[0] = '1'
+                if threshold_image[i + 1, j]:
+                    bincode_list[1] = '1'
+                if threshold_image[i + 1, j + 1]:
+                    bincode_list[2] = '1'
+                if threshold_image[i, j + 1]:
+                    bincode_list[3] = '1'
 
-                if iso_dict[bincode] == 1 or iso_dict[bincode] ==14:
-                    x1 = i + (sim.field[-1,i,j+1] - val)/( sim.field[-1,i,j+1]-sim.field[-1,i+1,j+1])
+                bincode = "".join(bincode_list)
+
+                if iso_dict[bincode] == 1 or iso_dict[bincode] == 14:
+                    x1 = i + (sim.field[-1, i, j + 1] - val) / (sim.field[-1, i, j + 1] - sim.field[-1, i + 1, j + 1])
                     y1 = j + 1
                     x2 = i
-                    y2 = j + (sim.field[-1,i,j] - val)/ (sim.field[-1,i,j]-sim.field[-1,i,j+1])
-                elif iso_dict[bincode] == 2 or iso_dict[bincode] ==13:
-                    x1 = i + (sim.field[-1,i,j+1] - val)/ (sim.field[-1,i,j+1]-sim.field[-1,i+1,j+1])
+                    y2 = j + (sim.field[-1, i, j] - val) / (sim.field[-1, i, j] - sim.field[-1, i, j + 1])
+                elif iso_dict[bincode] == 2 or iso_dict[bincode] == 13:
+                    x1 = i + (sim.field[-1, i, j + 1] - val) / (sim.field[-1, i, j + 1] - sim.field[-1, i + 1, j + 1])
                     y1 = j + 1
                     x2 = i + 1
-                    y2 = j + (sim.field[-1,i+1,j] - val)/ (sim.field[-1,i+1,j]-sim.field[-1,i+1,j+1])
-                elif iso_dict[bincode] == 3 or iso_dict[bincode] ==12:
+                    y2 = j + (sim.field[-1, i + 1, j] - val) / (sim.field[-1, i + 1, j] - sim.field[-1, i + 1, j + 1])
+                elif iso_dict[bincode] == 3 or iso_dict[bincode] == 12:
                     x1 = i
-                    y1 = j + (sim.field[-1,i,j] - val)/ (sim.field[-1,i,j]-sim.field[-1,i,j+1])
+                    y1 = j + (sim.field[-1, i, j] - val) / (sim.field[-1, i, j] - sim.field[-1, i, j + 1])
                     x2 = i + 1
-                    y2 = j + (sim.field[-1,i+1,j] - val)/ (sim.field[-1,i+1,j]-sim.field[-1,i+1,j+1])
-                elif iso_dict[bincode] == 4 or iso_dict[bincode] ==11 or iso_dict[bincode] ==10:
-                    x1 = i + (sim.field[-1,i,j] - val)/ (sim.field[-1,i,j]-sim.field[-1,i+1,j])
+                    y2 = j + (sim.field[-1, i + 1, j] - val) / (sim.field[-1, i + 1, j] - sim.field[-1, i + 1, j + 1])
+                elif iso_dict[bincode] == 4 or iso_dict[bincode] == 11 or iso_dict[bincode] == 10:
+                    x1 = i + (sim.field[-1, i, j] - val) / (sim.field[-1, i, j] - sim.field[-1, i + 1, j])
                     y1 = j
                     x2 = i + 1
-                    y2 = j + (sim.field[-1,i+1,j] - val)/ (sim.field[-1,i+1,j]-sim.field[-1,i+1,j+1])
+                    y2 = j + (sim.field[-1, i + 1, j] - val) / (sim.field[-1, i + 1, j] - sim.field[-1, i + 1, j + 1])
                 elif iso_dict[bincode] == 6 or iso_dict[bincode] == 9:
-                    x1 = i + (sim.field[-1,i,j] - val)/ (sim.field[-1,i,j]-sim.field[-1,i+1,j])
+                    x1 = i + (sim.field[-1, i, j] - val) / (sim.field[-1, i, j] - sim.field[-1, i + 1, j])
                     y1 = j
-                    x2 = i + (sim.field[-1,i,j+1] - val)/( sim.field[-1,i,j+1]-sim.field[-1,i+1,j+1])
+                    x2 = i + (sim.field[-1, i, j + 1] - val) / (sim.field[-1, i, j + 1] - sim.field[-1, i + 1, j + 1])
                     y2 = j + 1
                 elif iso_dict[bincode] == 7 or iso_dict[bincode] == 8 or iso_dict[bincode] == 5:
-                    x1 = i + (sim.field[-1,i,j] - val)/ (sim.field[-1,i,j]-sim.field[-1,i+1,j])
+                    x1 = i + (sim.field[-1, i, j] - val) / (sim.field[-1, i, j] - sim.field[-1, i + 1, j])
                     y1 = j
                     x2 = i
-                    y2 = j + (sim.field[-1,i,j] - val)/ (sim.field[-1,i,j]-sim.field[-1,i,j+1])
+                    y2 = j + (sim.field[-1, i, j] - val) / (sim.field[-1, i, j] - sim.field[-1, i, j + 1])
                 if iso_dict[bincode] == 5:
-                    x12 = i + (sim.field[-1,i,j+1] - val)/ (sim.field[-1,i,j+1]-sim.field[-1,i+1,j+1])
+                    x12 = i + (sim.field[-1, i, j + 1] - val) / (sim.field[-1, i, j + 1] - sim.field[-1, i + 1, j + 1])
                     y12 = j + 1
                     x22 = i + 1
-                    y22 = j + (sim.field[-1,i+1,j] - val)/ (sim.field[-1,i+1,j]-sim.field[-1,i+1,j+1])
+                    y22 = j + (sim.field[-1, i + 1, j] - val) / (sim.field[-1, i + 1, j] - sim.field[-1, i + 1, j + 1])
                 elif iso_dict[bincode] == 10:
-                    x12 = i + (sim.field[-1,i,j+1] - val)/( sim.field[-1,i,j+1]-sim.field[-1,i+1,j+1])
+                    x12 = i + (sim.field[-1, i, j + 1] - val) / (sim.field[-1, i, j + 1] - sim.field[-1, i + 1, j + 1])
                     y12 = j + 1
                     x22 = i
-                    y22 = j + (sim.field[-1,i,j] - val)/ (sim.field[-1,i,j]-sim.field[-1,i,j+1])
-
+                    y22 = j + (sim.field[-1, i, j] - val) / (sim.field[-1, i, j] - sim.field[-1, i, j + 1])
 
                 if not iso_dict[bincode] == 0 or iso_dict[bincode] == 15:
-                    glColor3f(cv[0],cv[1],cv[2])
-                    glVertex2f((x1/(50/2))-1, (y1/(50/1.8))-0.8)
-                    glVertex2f((x2/(50/2))-1, (y2/(50/1.8))-0.8)
+                    glColor3f(cv[0], cv[1], cv[2])
+                    glVertex2f((x1 / (50 / 2)) - 1, (y1 / (50 / 1.8)) - 0.8)
+                    glVertex2f((x2 / (50 / 2)) - 1, (y2 / (50 / 1.8)) - 0.8)
 
                 if iso_dict[bincode] == 5 or iso_dict[bincode] == 10:
-                    glColor3f(cv[0],cv[1],cv[2])
-                    glVertex2f((x12/(50/2))-1, (y12/(50/1.8))-0.8)
-                    glVertex2f((x22/(50/2))-1, (y22/(50/1.8))-0.8)
+                    glColor3f(cv[0], cv[1], cv[2])
+                    glVertex2f((x12 / (50 / 2)) - 1, (y12 / (50 / 1.8)) - 0.8)
+                    glVertex2f((x22 / (50 / 2)) - 1, (y22 / (50 / 1.8)) - 0.8)
     glEnd()
-
 
 
 ####### COLORMAPPING
@@ -200,6 +189,7 @@ def hsv2rgb(h, s, v):
     else:
         RGB = [v, lx, ly]
     return RGB
+
 
 # converse rgb to hsv coloring
 def rgb2hsv(r, g, b):
@@ -226,8 +216,9 @@ def rgb2hsv(r, g, b):
 
     return h, s, v
 
+
 def scalecolor(cv):
-    return cv**scale
+    return cv ** scale
 
 
 def bw(cv):
@@ -240,7 +231,6 @@ def bw(cv):
     cv = scalecolor(cv)
     RGB = [cv, cv, cv]
     return RGB
-
 
 
 # return color from rainbow colormap based on a value
@@ -267,6 +257,7 @@ def rainbow(cv):
     B = sat * B
 
     return [R, G, B]
+
 
 # return color from twotone colormap based on a value
 def twotone(value):
@@ -298,7 +289,7 @@ def twotone(value):
 def set_colormap(vy):
     RGB = np.zeros(3)
     global scalar_col
-    if not NLEVELS == 256^3:
+    if not NLEVELS == 256 ^ 3:
         vy = vy * NLEVELS
         vy = int(vy)
         vy = vy / NLEVELS
@@ -330,7 +321,7 @@ def makecolormap(colormaptobe):
 
 
 def blackcolormap():
-    return [0]*43218
+    return [0] * 43218
 
 
 def vis_color():
@@ -339,11 +330,12 @@ def vis_color():
         colormaptobe = sim.field[-1, :, :]
 
     elif colormap_type == 1:
-        colormaptobe = scale_velo_map * np.sqrt(sim.field[0, :, :] * sim.field[0, :, :] + sim.field[1, :, :] * sim.field[1, :, :])
+        colormaptobe = scale_velo_map * np.sqrt(
+            sim.field[0, :, :] * sim.field[0, :, :] + sim.field[1, :, :] * sim.field[1, :, :])
     elif colormap_type == 2:
         colormaptobe = np.sqrt(sim.forces[0, :, :] * sim.forces[0, :, :] + sim.forces[1, :, :] * sim.forces[1, :, :])
     elif colormap_type == 3:
-        colormaptobe = 50 * sim.divfield[:, :] +0.5
+        colormaptobe = 50 * sim.divfield[:, :] + 0.5
     global colors
     colors = makecolormap(colormaptobe)
 
@@ -353,56 +345,48 @@ def makevertices():
     v = []
     for i in range(49):
         for j in range(49):
-            p0 = [i/ (49 / 2) - 1, j/ (49 / 1.8) - 0.8, 0]
-            p1 = [i/ (49 / 2) - 1, (j + 1)/ (49 / 1.8) - 0.8, 0]
-            p2 = [(i + 1)/ (49 / 2) - 1, (j + 1)/ (49 / 1.8) - 0.8, 0]
-            p3 = [(i + 1)/ (49 / 2) - 1, j/ (49 / 1.8) - 0.8, 0]
+            p0 = [i / (49 / 2) - 1, j / (49 / 1.8) - 0.8, 0]
+            p1 = [i / (49 / 2) - 1, (j + 1) / (49 / 1.8) - 0.8, 0]
+            p2 = [(i + 1) / (49 / 2) - 1, (j + 1) / (49 / 1.8) - 0.8, 0]
+            p3 = [(i + 1) / (49 / 2) - 1, j / (49 / 1.8) - 0.8, 0]
             v += p0 + p1 + p2 + p0 + p2 + p3
     v = np.array(v)
     # v = v / (49 / 2) - 1
     v = v.tolist()
     return v
 
+
 def makelegend():
     vertices_leg = []
     colors_leg = []
 
     for i in range(499):
-        p0 = [i    /(499/2) - 1,-1.0, 0]
-        p1 = [(i+1)/(499/2) - 1,-1.0, 0]
-        p2 = [(i+1)/(499/2) - 1,-0.8, 0]
-        p3 = [i    /(499/2) - 1,-0.8, 0]
+        p0 = [i / (499 / 2) - 1, -1.0, 0]
+        p1 = [(i + 1) / (499 / 2) - 1, -1.0, 0]
+        p2 = [(i + 1) / (499 / 2) - 1, -0.8, 0]
+        p3 = [i / (499 / 2) - 1, -0.8, 0]
         vertices_leg += p0 + p1 + p2 + p0 + p2 + p3
-        colval = set_colormap(i/499)
+        colval = set_colormap(i / 499)
         # colval = colval.tolist()
-        colors_leg += colval*6
+        colors_leg += colval * 6
     vertices_leg = np.array(vertices_leg)
     vertices_leg = vertices_leg.tolist()
 
     # colors_leg = np.array(colors_leg)
 
-
-
-
-
     leg_vbo = glGenBuffers(1)
     colleg_vbo = glGenBuffers(1)
-
 
     glEnableClientState(GL_COLOR_ARRAY)
     glBindBuffer(GL_ARRAY_BUFFER, leg_vbo)
     glBufferData(GL_ARRAY_BUFFER, len(vertices_leg) * 4, (c_float * len(vertices_leg))(*vertices_leg), GL_STATIC_DRAW)
-    glVertexPointer(3, GL_FLOAT,0,None)
-
+    glVertexPointer(3, GL_FLOAT, 0, None)
 
     glBindBuffer(GL_ARRAY_BUFFER, colleg_vbo)
     glBufferData(GL_ARRAY_BUFFER, len(colors_leg) * 4, (c_float * len(colors_leg))(*colors_leg), GL_STATIC_DRAW)
 
-
-    glColorPointer(3,GL_FLOAT,0,None)
-    glDrawArrays(GL_TRIANGLES,0,2994)
-
-
+    glColorPointer(3, GL_FLOAT, 0, None)
+    glDrawArrays(GL_TRIANGLES, 0, 2994)
 
 
 ########## VECTOR COLORING
@@ -458,14 +442,14 @@ def drawGlyph(x, y, vx, vy, size, color):
     glBegin(GL_TRIANGLES)
     glColor3f(color[0], color[1], color[2])
     glVertex2f(x + vx, y + vy)
-    glVertex2f(x - 10/DIM * vy, y + 10/DIM * vx)
-    glVertex2f(x + 10/DIM * vy, y - 10/DIM * vx)
+    glVertex2f(x - 10 / DIM * vy, y + 10 / DIM * vx)
+    glVertex2f(x + 10 / DIM * vy, y - 10 / DIM * vx)
     glEnd()
 
 
 # function that draws arrows as glyphs
 def drawArrow(x, y, vx, vy, size, color):
-    size+=5
+    size += 5
     glBegin(GL_LINES)
     glColor3f(color[0], color[1], color[2])
     glVertex2f(x + vx, y + vy)
@@ -474,8 +458,8 @@ def drawArrow(x, y, vx, vy, size, color):
     glBegin(GL_TRIANGLES)
     glColor3f(color[0], color[1], color[2])
     glVertex2f(x + vx, y + vy)
-    glVertex2f((x+0.5*vx) - 2*(size / DIM) * vy, (y+0.5*vy) + 2*(size / DIM) * vx)
-    glVertex2f((x+0.5*vx) + 2*(size / DIM) * vy, (y+0.5*vy) - 2*(size / DIM) * vx)
+    glVertex2f((x + 0.5 * vx) - 2 * (size / DIM) * vy, (y + 0.5 * vy) + 2 * (size / DIM) * vx)
+    glVertex2f((x + 0.5 * vx) + 2 * (size / DIM) * vy, (y + 0.5 * vy) - 2 * (size / DIM) * vx)
     glEnd()
 
 
@@ -594,13 +578,13 @@ def performAction(message):
     elif action == Action.FREEZE.name:
         frozen = not frozen
     elif action == Action.CLAMP_COLOR_MIN_UP.name:
-        clamp_color[0] = min(clamp_color[0]+0.1, clamp_color[1]-0.1)
+        clamp_color[0] = min(clamp_color[0] + 0.1, clamp_color[1] - 0.1)
     elif action == Action.CLAMP_COLOR_MAX_DOWN.name:
-        clamp_color[0] = max(clamp_color[0]-0.1, 0)
+        clamp_color[0] = max(clamp_color[0] - 0.1, 0)
     elif action == Action.CLAMP_COLOR_MAX_UP.name:
-        clamp_color[1] = max(clamp_color[1]+0.1, 1)
+        clamp_color[1] = max(clamp_color[1] + 0.1, 1)
     elif action == Action.CLAMP_COLOR_MAX_DOWN.name:
-        clamp_color[1] = min(clamp_color[1]-0.1, clamp_color[0]+0.1)
+        clamp_color[1] = min(clamp_color[1] - 0.1, clamp_color[0] + 0.1)
     elif action == Action.CHANGE_HUE.name:
         hue += 1 / 6
         if hue >= 1.0:
@@ -636,6 +620,9 @@ def performAction(message):
         iso_col = 3
 
     elif action == Action.QUIT.name:
+        global keep_connection
+        keep_connection = False
+        time.sleep(2)
         sys.exit()
 
 
@@ -693,8 +680,9 @@ def keyboard(key):
 
 def getGuiInput():
     global q
+    global keep_connection
     # connect to socket
-    while True:
+    while keep_connection:
         connection, address = serversocket.accept()
         buf = connection.recv(64)
         if len(buf) > 0:
@@ -725,7 +713,7 @@ def main():
 
     clock = pygame.time.Clock()
 
-    thread = Thread(target = getGuiInput)
+    thread = Thread(target=getGuiInput)
     thread.start()
 
     vertices = makevertices()
@@ -744,6 +732,9 @@ def main():
     while running:
         clock.tick(60)
         global dragbool
+        global keep_connection
+        if not keep_connection:
+            thread.join()
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -764,7 +755,7 @@ def main():
 
         while not q.empty():
             performAction(q.get())
-            #print(q.get())
+            # print(q.get())
 
         sim.do_one_simulation_step(frozen)
         vis_color()
@@ -784,12 +775,12 @@ def main():
         makelegend()
         if draw_glyphs == 1:
             glBegin(GL_LINES)
-            step = DIM/n_glyphs
+            step = DIM / n_glyphs
             for i in range(0, n_glyphs):
                 for j in range(0, n_glyphs):
 
-                    x = round(i*step)
-                    y = round(j*step)
+                    x = round(i * step)
+                    y = round(j * step)
                     color = np.ones(3)
                     if magdir:
                         color = magnitude_to_color(sim.field[0, x, y], sim.field[1, x, y], color_mag_v)
@@ -797,28 +788,30 @@ def main():
                         color = direction_to_color(sim.field[0, x, y], sim.field[1, x, y], color_dir)
                     glColor3f(color[0], color[1], color[2])
 
-                    glVertex2f((((i+0.5)*step / (49 / 2)) - 1), (((j+0.5)*step / (49 / 1.8)) - 0.8))
-                    glVertex2f((((i+0.5)*step / (49 / 2)) - 1) + vec_scale * sim.field[0, x, y],
-                               ((((j+0.5)*step / (49 / 1.8)) - 0.8)) + vec_scale * sim.field[1, x, y])
+                    glVertex2f((((i + 0.5) * step / (49 / 2)) - 1), (((j + 0.5) * step / (49 / 1.8)) - 0.8))
+                    glVertex2f((((i + 0.5) * step / (49 / 2)) - 1) + vec_scale * sim.field[0, x, y],
+                               ((((j + 0.5) * step / (49 / 1.8)) - 0.8)) + vec_scale * sim.field[1, x, y])
             glEnd()
 
         if draw_glyphs >= 2:
-            step = DIM/n_glyphs
+            step = DIM / n_glyphs
             for i in range(n_glyphs):
                 for j in range(n_glyphs):
 
-                    x = i*step
-                    y = j*step
+                    x = i * step
+                    y = j * step
                     vx = step * sim.field[0, round(x), round(y)]
                     vy = step * sim.field[1, round(x), round(y)]
-                    x2 = (i+0.5)*step / ((DIM - 1) / 2) - 1
-                    y2 = (j+0.5)*step / ((DIM - 1) / 1.8) - 0.8
+                    x2 = (i + 0.5) * step / ((DIM - 1) / 2) - 1
+                    y2 = (j + 0.5) * step / ((DIM - 1) / 1.8) - 0.8
 
                     color = np.ones(3)
                     if magdir:
-                        color = magnitude_to_color(sim.field[0, round(x), round(y)], sim.field[1, round(x), round(y)], color_mag_v)
+                        color = magnitude_to_color(sim.field[0, round(x), round(y)], sim.field[1, round(x), round(y)],
+                                                   color_mag_v)
                     else:
-                        color = direction_to_color(sim.field[0, round(x), round(y)], sim.field[1, round(x), round(y)], color_dir)
+                        color = direction_to_color(sim.field[0, round(x), round(y)], sim.field[1, round(x), round(y)],
+                                                   color_dir)
 
                     size = sim.field[-1, round(x), round(y)]
                     if draw_glyphs == 2:
@@ -832,10 +825,9 @@ def main():
 
 
 pygame.init()
-screen = pygame.display.set_mode((winWidth, winHeight+55), pygame.OPENGL | pygame.DOUBLEBUF, 24)
-glViewport(0, 0, winWidth, winHeight+55)
+screen = pygame.display.set_mode((winWidth, winHeight + 55), pygame.OPENGL | pygame.DOUBLEBUF, 24)
+glViewport(0, 0, winWidth, winHeight + 55)
 glClearColor(0.0, 0.5, 0.5, 1.0)
 glEnableClientState(GL_VERTEX_ARRAY)
-
 
 main()
