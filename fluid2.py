@@ -31,9 +31,8 @@ q = queue.Queue(maxsize=20)
 frozen = False
 winWidth = 500
 winHeight = 500
-color_dir = False
 color_mag_v = 0
-colormap_type = 3
+
 scale_velo_map = 5
 NLEVELS = 256 ^ 3
 levels = [256 ^ 3, 20, 10, 5]
@@ -47,24 +46,18 @@ clamp_factor_mag = 0.02
 
 colors = []
 
-clamp_color = [0, 1]
 
-magdir = False
-vec_scale = 5
-draw_smoke = True
-draw_vecs = False
-draw_glyphs = 1
-n_glyphs = 16
+
+
+
 COLOR_BLACKWHITE = 0
 COLOR_RAINBOW = 1
 COLOR_TWOTONE = 2
+COLOR_WHITE = 3
 scalar_col = 0
-scale = 1.0
-iso = True
-iso_max = 1
-iso_min = 0.7
-iso_n = 1
-iso_col = 3
+
+
+
 
 ### Options
 # vectors:          none, hedgehogs, triangles, arrows
@@ -75,12 +68,27 @@ iso_col = 3
 # n_isolines
 
 
+color_dict = {'Field': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_BLACKWHITE, 'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'datatype': 0}, \
+ 'Iso': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE, 'show': False, 'clamp_min': 0.0, 'clamp_max':1.0, 'iso_min': 0.7, 'iso_max':1.0, 'iso_n': 1},\
+  'Vector': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE, 'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'n_glyphs': 16, 'draw_glyphs': 1, 'col_mag': 0, 'vec_scale': 5}}
+
+
+colormap_vect = np.zeros((256,3))
+colormap_field = np.zeros((256,3))
+colormap_iso = np.zeros((256,3))
+
+
+
+
 ### Visualization
 
 def isolines():
-    max = iso_max
-    min = iso_min
-    n = iso_n
+    nlevels = color_dict['Iso']['nlevels']
+    clamp_min = color_dict['Iso']['clamp_min']
+    clamp_max = color_dict['Iso']['clamp_max']
+    max = color_dict['Iso']['iso_max']
+    min = color_dict['Iso']['iso_min']
+    n = color_dict['Iso']['iso_n']
     if max < min:
         return
     if max == min:
@@ -95,15 +103,13 @@ def isolines():
     glBegin(GL_LINES)
     for val in vallist:
         threshold_image = sim.field[-1, :, :] > val
+        if val > clamp_max:
+            val = clamp_max
+        elif val < clamp_min:
+            val = clamp_min
 
-        if iso_col == COLOR_BLACKWHITE:
-            cv = bw(val)
-        elif iso_col == COLOR_RAINBOW:
-            cv = rainbow(val)
-        elif iso_col == COLOR_TWOTONE:
-            cv = twotone(val)
-        else:
-            cv = [1, 1, 1]
+        cv = colormap_iso[int(round(val/(clamp_max-clamp_min) * (nlevels-1)))]
+
         for i in range(0, DIM - 1):
             for j in range(0, DIM - 1):
                 bincode_list = ['0', '0', '0', '0']
@@ -221,31 +227,29 @@ def rgb2hsv(r, g, b):
     return h, s, v
 
 
-def scalecolor(cv):
-    return cv ** scale
 
 
-def bw(cv):
+def bw(cv,scale):
     RGB = np.zeros(3)
     global clamp_color
-    if cv < clamp_color[0]:
-        cv = clamp_color[0]
-    if cv > clamp_color[1]:
-        cv = clamp_color[1]
-    cv = scalecolor(cv)
-    RGB = [cv, cv, cv]
+    # if cv < clamp_color[0]:
+    #     cv = clamp_color[0]
+    # if cv > clamp_color[1]:
+    #     cv = clamp_color[1]
+    cv = cv**scale
+    RGB = np.array([cv, cv, cv])
     return RGB
 
 
 # return color from rainbow colormap based on a value
-def rainbow(cv):
+def rainbow(cv,scale):
     dx = 0.8
-    global clamp_color
-    if cv < clamp_color[0]:
-        cv = clamp_color[0]
-    if cv > clamp_color[1]:
-        cv = clamp_color[1]
-    cv = scalecolor(cv)
+    # global clamp_color
+    # if cv < clamp_color[0]:
+    #     cv = clamp_color[0]
+    # if cv > clamp_color[1]:
+    #     cv = clamp_color[1]
+    cv = cv**scale
     cv = (6 - 2 * dx) * cv + dx
     R = max(0.0, (3 - np.fabs(cv - 4) - np.fabs(cv - 5)) / 2)
     G = max(0.0, (4 - np.fabs(cv - 2) - np.fabs(cv - 4)) / 2)
@@ -260,20 +264,20 @@ def rainbow(cv):
     G = sat * G
     B = sat * B
 
-    return [R, G, B]
+    return np.array([R, G, B])
 
 
 # return color from twotone colormap based on a value
-def twotone(value):
+def twotone(value,scale):
     c1 = [255 / 256, 255 / 256, 51 / 256]
     c2 = [0.0, 51 / 256, 255 / 256]
     global clamp_color
-    if value < clamp_color[0]:
-        value = clamp_color[0]
-    if value > clamp_color[1]:
-        value = clamp_color[1]
-    value = scalecolor(value)
-    # nog scalen!!
+    # if value < clamp_color[0]:
+    #     value = clamp_color[0]
+    # if value > clamp_color[1]:
+    #     value = clamp_color[1]
+    value = cv**scale
+
 
     R = value * (c1[0] - c2[0]) + c2[0]
     G = value * (c1[1] - c2[1]) + c2[1]
@@ -286,32 +290,53 @@ def twotone(value):
     G = sat * G
     B = sat * B
 
-    return [R, G, B]
+    return np.array([R, G, B])
 
 
-# set_colormap: Sets three different types of colormaps
-def set_colormap(vy):
-    RGB = np.zeros(3)
-    global scalar_col
-    if not NLEVELS == 256 ^ 3:
-        vy = vy * NLEVELS
-        vy = int(vy)
-        vy = vy / NLEVELS
+def change_colormap(type):
+    global colormap_field
+    global colormap_iso
+    global colormap_vect
+    nlevels = color_dict[type]['nlevels']
+    scale = color_dict[type]['scale']
+    color_scheme = color_dict[type]['color_scheme']
+    colormap = np.zeros((nlevels,3))
+    for i in range(0,nlevels):
+        if color_scheme == COLOR_BLACKWHITE:
+            colormap[i,:] = bw(i/nlevels, scale)
+        elif color_scheme == COLOR_RAINBOW:
+            colormap[i,:] = rainbow(i/nlevels, scale)
+        elif color_scheme == COLOR_TWOTONE:
+            colormap[i,:] = twotone(i/nlevels, scale)
+        elif color_scheme == COLOR_WHITE:
+            colormap[i,:] = np.ones((1,3))
 
-    if scalar_col == COLOR_BLACKWHITE:
-        RGB = bw(vy)
-    elif scalar_col == COLOR_RAINBOW:
-        RGB = rainbow(vy)
-    elif scalar_col == COLOR_TWOTONE:
-        RGB = twotone(vy)
-    return RGB
+    if type == 'Field':
+        colormap_field = colormap
+    elif type == 'Iso':
+        colormap_iso = colormap
+    elif type == 'Vector':
+        colormap_vect = colormap
+
 
 
 def makecolormap(colormaptobe):
     colormap = np.zeros((50, 50, 3))
+    nlevels = color_dict['Field']['nlevels']
+    clamp_min = color_dict['Field']['clamp_min']
+    clamp_max = color_dict['Field']['clamp_max']
     for i in range(0, DIM):
         for j in range(0, DIM):
-            colormap[i, j, :] = set_colormap(colormaptobe[i, j])
+            val = colormaptobe[i,j]
+            if val < clamp_min:
+                val = clamp_min
+            elif val > clamp_max:
+                val = clamp_max
+            val = val/(clamp_max-clamp_min) * (nlevels-1)
+            val = int(round(val))
+
+            colormap[i, j, :] = colormap_field[val,:]
+            # print(colormap[i,j,:])
     c = []
     for x in range(0, DIM - 1):
         for y in range(0, DIM - 1):
@@ -324,14 +349,14 @@ def makecolormap(colormaptobe):
     return c
 
 
-def blackcolormap():
+def blackcolors():
     return [0] * 43218
 
 
 ### Determine the representation of the colors
 def vis_color():
     colormaptobe = np.zeros((50, 50))
-
+    colormap_type = color_dict['Field']['datatype']
     # Density
     if colormap_type == 0:
         colormaptobe = sim.field[-1, :, :]
@@ -372,15 +397,16 @@ def makevertices():
 def makelegend():
     vertices_leg = []
     colors_leg = []
+    length = color_dict['Field']['nlevels']
 
-    for i in range(499):
-        p0 = [i / (499 / 2) - 1, -1.0, 0]
-        p1 = [(i + 1) / (499 / 2) - 1, -1.0, 0]
-        p2 = [(i + 1) / (499 / 2) - 1, -0.8, 0]
-        p3 = [i / (499 / 2) - 1, -0.8, 0]
+    for i in range(length):
+        p0 = [i / (length / 2) - 1, -1.0, 0]
+        p1 = [(i + 1) / (length / 2) - 1, -1.0, 0]
+        p2 = [(i + 1) / (length / 2) - 1, -0.8, 0]
+        p3 = [i / (length / 2) - 1, -0.8, 0]
         vertices_leg += p0 + p1 + p2 + p0 + p2 + p3
-        colval = set_colormap(i / 499)
-        # colval = colval.tolist()
+        colval = colormap_field[i]
+        colval = colval.tolist()
         colors_leg += colval * 6
     vertices_leg = np.array(vertices_leg)
     vertices_leg = vertices_leg.tolist()
@@ -399,31 +425,30 @@ def makelegend():
     glBufferData(GL_ARRAY_BUFFER, len(colors_leg) * 4, (c_float * len(colors_leg))(*colors_leg), GL_STATIC_DRAW)
 
     glColorPointer(3, GL_FLOAT, 0, None)
-    glDrawArrays(GL_TRIANGLES, 0, 2994)
+    glDrawArrays(GL_TRIANGLES, 0, 6*length)
 
 
 ########## VECTOR COLORING
 # direction_to_color: Set the current color by mapping a direction vector (x,y), using
 #                    the color mapping method 'method'. If method==1, map the vector direction
 #                    using a rainbow colormap. If method==0, simply use the white color
-def direction_to_color(x, y, method):
+def direction_to_color(x, y):
     RGB = np.ones(3)
-    if method:
-        f = math.atan2(y, x) / 3.1415927 + 1
-        r = f
-        if r > 1:
-            r = 2 - r
-        g = f + .66667
-        if g > 2:
-            g -= 2
-        if g > 1:
-            g = 2 - g
-        b = f + 2 * .66667
-        if b > 2:
-            b -= 2
-        if b > 1:
-            b = 2 - b
-        RGB = [r, g, b]
+    f = math.atan2(y, x) / 3.1415927 + 1
+    r = f
+    if r > 1:
+        r = 2 - r
+    g = f + .66667
+    if g > 2:
+        g -= 2
+    if g > 1:
+        g = 2 - g
+    b = f + 2 * .66667
+    if b > 2:
+        b -= 2
+    if b > 1:
+        b = 2 - b
+    RGB = [r, g, b]
 
     return RGB
 
@@ -434,17 +459,21 @@ def magnitude_to_color(x, y, colormaptype):
     RGB = np.ones(3)
     mag = np.sqrt(x * x + y * y)
 
-    mag = scaling_factor_mag * mag + clamp_factor_mag
-    if mag > 1:
-        mag = 1
-    if mag < 0:
-        mag = 0
-    if colormaptype == 0:
-        RGB = [mag, mag, mag]
-    elif colormaptype == 1:
-        RGB = rainbow(mag)
-    elif colormaptype == 2:
-        RGB = twotone(mag)
+    mag = scaling_factor_mag * mag
+    clamp_min = color_dict['Vector']['clamp_min']
+    clamp_max = color_dict['Vector']['clamp_max']
+    nlevels = color_dict['Vector']['nlevels']
+    if mag > clamp_max:
+        mag = clamp_max
+    if mag < clamp_min:
+        mag = clamp_min
+    color = colormap_vect[int(round(mag/(clamp_max-clamp_min)*(nlevels-1)))]
+    # if colormaptype == 0:
+    #     RGB = [mag, mag, mag]
+    # elif colormaptype == 1:
+    #     RGB = rainbow(mag)
+    # elif colormaptype == 2:
+    #     RGB = twotone(mag)
 
     return RGB
 
@@ -525,25 +554,16 @@ def drag(mx, my):
 
 
 def performAction(message):
-    global vec_scale
-    global color_dir
+    global color_dict
     global color_mag_v
-    global magdir
     global clamp_color
-    global draw_smoke
-    global draw_glyphs
-    global colormap_type
     global scalar_col
     global frozen
     global hue
     global NLEVELS
     global level
-    global n_glyphs
     global scale
-    global iso_col
-    global iso_min
-    global iso_max
-    global iso_n
+
 
     a = message.split(':')
     action = a[0]
@@ -554,42 +574,42 @@ def performAction(message):
         sim.dt += 0.001
     elif action == Action.SET_DT.name:
         sim.dt = float(a[1])
-    elif action == Action.COLOR_DIR.name:
-        color_dir = not color_dir
     elif action == Action.COLOR_MAG_CHANGE.name:
         color_mag_v += 1
         if color_mag_v > 2:
             color_mag_v = 0
     elif action == Action.MAG_DIR.name:
-        magdir = not magdir
+        color_dict['Vector']['col_mag'] += 1
+        if color_dict['Vector']['col_mag'] > 2:
+            color_dict['Vector']['col_mag'] = 0
     elif action == Action.VEC_SCALE_UP.name:
-        vec_scale *= 1.2
+        color_dict['Vector']['vec_scale'] *= 1.2
     elif action == Action.VEC_SCALE_DOWN.name:
-        vec_scale *= 0.8
+        color_dict['Vector']['vec_scale'] *= 0.8
     elif action == Action.VISC_UP.name:
         sim.visc *= 5
     elif action == Action.VISC_DOWN.name:
         sim.visc *= 0.2
     elif action == Action.DRAW_SMOKE.name:
-        draw_smoke = not draw_smoke
+        color_dict['Field']['show'] = not color_dict['Field']['show']
     elif action == Action.GLYPH_CHANGE.name:
-        draw_glyphs += 1
-        if draw_glyphs > 3:
-            draw_glyphs = 0
+        color_dict['Vector']['draw_glyphs'] += 1
+        if color_dict['Vector']['draw_glyphs'] > 3:
+            color_dict['Vector']['draw_glyphs'] = 0
     elif action == Action.SCALAR_COLOR_CHANGE.name:
-        scalar_col += 1
-        if scalar_col > COLOR_TWOTONE:
-            scalar_col = COLOR_BLACKWHITE
+        color_dict['Field']['color_scheme'] += 1
+        if color_dict['Field']['color_scheme'] > COLOR_TWOTONE:
+            color_dict['Field']['color_scheme'] = COLOR_BLACKWHITE
     elif action == Action.COLOR_MAG_BLACK.name:
-        scalar_col = COLOR_BLACKWHITE
+        color_dict['Field']['color_scheme'] = COLOR_BLACKWHITE
     elif action == Action.COLOR_MAG_RAINBOW.name:
-        scalar_col = COLOR_RAINBOW
+        color_dict['Field']['color_scheme'] = COLOR_RAINBOW
     elif action == Action.COLOR_MAG_TWOTONE.name:
-        scalar_col = COLOR_TWOTONE
+        color_dict['Field']['color_scheme'] = COLOR_TWOTONE
     elif action == Action.COLORMAP_CHANGE.name:
-        colormap_type += 1
-        if colormap_type > 3:
-            colormap_type = 0
+        color_dict['Field']['datatype'] += 1
+        if color_dict['Field']['datatype'] > 3:
+            color_dict['Field']['datatype'] = 0
     elif action == Action.FREEZE.name:
         frozen = not frozen
     elif action == Action.CLAMP_COLOR_MIN_UP.name:
@@ -610,9 +630,9 @@ def performAction(message):
             level = 0
         NLEVELS = levels[level]
     elif action == Action.GLYPH_CHANGE_N.name:
-        n_glyphs += 5
-        if n_glyphs > 50:
-            n_glyphs = 5
+        color_dict['Vector']['n_glyphs'] += 5
+        if color_dict['Vector']['n_glyphs'] > 50:
+            color_dict['Vector']['n_glyphs'] = 5
     elif action == Action.SET_SCALE.name:
         scale = float(a[1])
     elif action == Action.CHANGE_ISO_COL.name:
@@ -620,19 +640,19 @@ def performAction(message):
         if iso_col > 4:
             iso_col = 0
     elif action == Action.SET_ISO_MIN.name:
-        iso_min = float(a[1])
+        color_dict['Iso']['iso_min'] = float(a[1])
     elif action == Action.SET_ISO_MAX.name:
-        iso_max = float(a[1])
+        color_dict['Iso']['iso_max'] = float(a[1])
     elif action == Action.SET_ISO_N.name:
-        iso_n = int(a[1])
+        color_dict['Iso']['iso_n'] = int(a[1])
     elif action == Action.COLOR_ISO_BLACK.name:
-        iso_col = 0
+        color_dict['Iso']['color_scheme'] = 0
     elif action == Action.COLOR_ISO_RAINBOW.name:
-        iso_col = 1
+        color_dict['Iso']['color_scheme'] = 1
     elif action == Action.COLOR_ISO_TWOTONE.name:
-        iso_col = 2
+        color_dict['Iso']['color_scheme'] = 2
     elif action == Action.COLOR_ISO_WHITE.name:
-        iso_col = 3
+        color_dict['Iso']['color_scheme'] = 3
 
     elif action == Action.QUIT.name:
         global keep_connection
@@ -649,8 +669,7 @@ def keyboard(key):
         q.put(Action.DT_DOWN.name)
     elif key == pygame.K_y:
         q.put(Action.DT_UP.name)
-    elif key == pygame.K_c:
-        q.put(Action.COLOR_DIR.name)
+
     elif key == pygame.K_v:
         q.put(Action.COLOR_MAG_CHANGE.name)
     elif key == pygame.K_m:
@@ -731,6 +750,11 @@ def main():
     thread = Thread(target=getGuiInput)
     thread.start()
 
+    change_colormap('Field')
+    change_colormap('Iso')
+    change_colormap('Vector')
+
+
     vertices = makevertices()
     global colors
     colors = makecolormap(sim.field[-1, :, :])
@@ -779,8 +803,8 @@ def main():
 
         glBindBuffer(GL_ARRAY_BUFFER, vertices_vbo)
         glVertexPointer(3, GL_FLOAT, 0, None)
-        if not draw_smoke:
-            colors = blackcolormap()
+        if not color_dict['Field']['show']:
+            colors = blackcolors()
         glBindBuffer(GL_ARRAY_BUFFER, colors_vbo)
         glBufferData(GL_ARRAY_BUFFER, len(colors) * 4, (c_float * len(colors))(*colors), GL_STATIC_DRAW)
         glColorPointer(3, GL_FLOAT, 0, None)
@@ -788,6 +812,9 @@ def main():
         glDrawArrays(GL_TRIANGLES, 0, 43218)
 
         makelegend()
+        draw_glyphs = color_dict['Vector']['draw_glyphs']
+        n_glyphs = color_dict['Vector']['n_glyphs']
+        vec_scale = color_dict['Vector']['vec_scale']
         if draw_glyphs == 1:
             glBegin(GL_LINES)
             step = DIM / n_glyphs
@@ -797,10 +824,10 @@ def main():
                     x = round(i * step)
                     y = round(j * step)
                     color = np.ones(3)
-                    if magdir:
+                    if color_dict['Vector']['col_mag'] == 1:
                         color = magnitude_to_color(sim.field[0, x, y], sim.field[1, x, y], color_mag_v)
-                    else:
-                        color = direction_to_color(sim.field[0, x, y], sim.field[1, x, y], color_dir)
+                    elif color_dict['Vector']['col_mag'] == 2:
+                        color = direction_to_color(sim.field[0, x, y], sim.field[1, x, y])
                     glColor3f(color[0], color[1], color[2])
 
                     glVertex2f((((i + 0.5) * step / (49 / 2)) - 1), (((j + 0.5) * step / (49 / 1.8)) - 0.8))
@@ -821,19 +848,18 @@ def main():
                     y2 = (j + 0.5) * step / ((DIM - 1) / 1.8) - 0.8
 
                     color = np.ones(3)
-                    if magdir:
+                    if color_dict['Vector']['col_mag']:
                         color = magnitude_to_color(sim.field[0, round(x), round(y)], sim.field[1, round(x), round(y)],
                                                    color_mag_v)
                     else:
-                        color = direction_to_color(sim.field[0, round(x), round(y)], sim.field[1, round(x), round(y)],
-                                                   color_dir)
+                        color = direction_to_color(sim.field[0, round(x), round(y)], sim.field[1, round(x), round(y)])
 
                     size = sim.field[-1, round(x), round(y)]
                     if draw_glyphs == 2:
                         drawGlyph(x2, y2, vx, vy, size, color)
                     else:
                         drawArrow(x2, y2, vx, vy, size, color)
-        if iso:
+        if color_dict['Iso']['show']:
             isolines()
 
         pygame.display.flip()
