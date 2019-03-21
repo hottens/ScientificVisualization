@@ -7,7 +7,6 @@ import socket
 import time
 from fluid_actions import Action
 import pygame
-from OpenGL.GL import *
 from ctypes import *
 from threading import Thread
 
@@ -67,8 +66,13 @@ iso_min = 0.7
 iso_n = 1
 iso_col = 3
 
-iso_dict = {'0000': 0, '0001': 1, '0010': 2, '0011': 3, '0100': 4, '0101': 5, '0110': 6, '0111': 7, '1000': 8,
-            '1001': 9, '1010': 10, '1011': 11, '1100': 12, '1101': 13, '1110': 14, '1111': 15}
+### Options
+# vectors:          none, hedgehogs, triangles, arrows
+# vector_color:     white, direction_to_color, magnitude_to_color
+# color_schemes:    bw, twotone, rainbow
+# color_map_type:   diffusion, direction / magnitude, force, divergence
+# isolines:         no, yes
+# n_isolines
 
 
 ### Visualization
@@ -114,53 +118,53 @@ def isolines():
 
                 bincode = "".join(bincode_list)
 
-                if iso_dict[bincode] == 1 or iso_dict[bincode] == 14:
+                if int(bincode, 2) == 1 or int(bincode, 2) == 14:
                     x1 = i + (sim.field[-1, i, j + 1] - val) / (sim.field[-1, i, j + 1] - sim.field[-1, i + 1, j + 1])
                     y1 = j + 1
                     x2 = i
                     y2 = j + (sim.field[-1, i, j] - val) / (sim.field[-1, i, j] - sim.field[-1, i, j + 1])
-                elif iso_dict[bincode] == 2 or iso_dict[bincode] == 13:
+                elif int(bincode, 2) == 2 or int(bincode, 2) == 13:
                     x1 = i + (sim.field[-1, i, j + 1] - val) / (sim.field[-1, i, j + 1] - sim.field[-1, i + 1, j + 1])
                     y1 = j + 1
                     x2 = i + 1
                     y2 = j + (sim.field[-1, i + 1, j] - val) / (sim.field[-1, i + 1, j] - sim.field[-1, i + 1, j + 1])
-                elif iso_dict[bincode] == 3 or iso_dict[bincode] == 12:
+                elif int(bincode, 2) == 3 or int(bincode, 2) == 12:
                     x1 = i
                     y1 = j + (sim.field[-1, i, j] - val) / (sim.field[-1, i, j] - sim.field[-1, i, j + 1])
                     x2 = i + 1
                     y2 = j + (sim.field[-1, i + 1, j] - val) / (sim.field[-1, i + 1, j] - sim.field[-1, i + 1, j + 1])
-                elif iso_dict[bincode] == 4 or iso_dict[bincode] == 11 or iso_dict[bincode] == 10:
+                elif int(bincode, 2) == 4 or int(bincode, 2) == 11 or int(bincode, 2) == 10:
                     x1 = i + (sim.field[-1, i, j] - val) / (sim.field[-1, i, j] - sim.field[-1, i + 1, j])
                     y1 = j
                     x2 = i + 1
                     y2 = j + (sim.field[-1, i + 1, j] - val) / (sim.field[-1, i + 1, j] - sim.field[-1, i + 1, j + 1])
-                elif iso_dict[bincode] == 6 or iso_dict[bincode] == 9:
+                elif int(bincode, 2) == 6 or int(bincode, 2) == 9:
                     x1 = i + (sim.field[-1, i, j] - val) / (sim.field[-1, i, j] - sim.field[-1, i + 1, j])
                     y1 = j
                     x2 = i + (sim.field[-1, i, j + 1] - val) / (sim.field[-1, i, j + 1] - sim.field[-1, i + 1, j + 1])
                     y2 = j + 1
-                elif iso_dict[bincode] == 7 or iso_dict[bincode] == 8 or iso_dict[bincode] == 5:
+                elif int(bincode, 2) == 7 or int(bincode, 2) == 8 or int(bincode, 2) == 5:
                     x1 = i + (sim.field[-1, i, j] - val) / (sim.field[-1, i, j] - sim.field[-1, i + 1, j])
                     y1 = j
                     x2 = i
                     y2 = j + (sim.field[-1, i, j] - val) / (sim.field[-1, i, j] - sim.field[-1, i, j + 1])
-                if iso_dict[bincode] == 5:
+                if int(bincode, 2) == 5:
                     x12 = i + (sim.field[-1, i, j + 1] - val) / (sim.field[-1, i, j + 1] - sim.field[-1, i + 1, j + 1])
                     y12 = j + 1
                     x22 = i + 1
                     y22 = j + (sim.field[-1, i + 1, j] - val) / (sim.field[-1, i + 1, j] - sim.field[-1, i + 1, j + 1])
-                elif iso_dict[bincode] == 10:
+                elif int(bincode, 2) == 10:
                     x12 = i + (sim.field[-1, i, j + 1] - val) / (sim.field[-1, i, j + 1] - sim.field[-1, i + 1, j + 1])
                     y12 = j + 1
                     x22 = i
                     y22 = j + (sim.field[-1, i, j] - val) / (sim.field[-1, i, j] - sim.field[-1, i, j + 1])
 
-                if not iso_dict[bincode] == 0 or iso_dict[bincode] == 15:
+                if not int(bincode, 2) == 0 or int(bincode, 2) == 15:
                     glColor3f(cv[0], cv[1], cv[2])
                     glVertex2f((x1 / (50 / 2)) - 1, (y1 / (50 / 1.8)) - 0.8)
                     glVertex2f((x2 / (50 / 2)) - 1, (y2 / (50 / 1.8)) - 0.8)
 
-                if iso_dict[bincode] == 5 or iso_dict[bincode] == 10:
+                if int(bincode, 2) == 5 or int(bincode, 2) == 10:
                     glColor3f(cv[0], cv[1], cv[2])
                     glVertex2f((x12 / (50 / 2)) - 1, (y12 / (50 / 1.8)) - 0.8)
                     glVertex2f((x22 / (50 / 2)) - 1, (y22 / (50 / 1.8)) - 0.8)
@@ -324,18 +328,27 @@ def blackcolormap():
     return [0] * 43218
 
 
+### Determine the representation of the colors
 def vis_color():
     colormaptobe = np.zeros((50, 50))
+
+    # Density
     if colormap_type == 0:
         colormaptobe = sim.field[-1, :, :]
 
+    # Direction and Magnitude
     elif colormap_type == 1:
         colormaptobe = scale_velo_map * np.sqrt(
             sim.field[0, :, :] * sim.field[0, :, :] + sim.field[1, :, :] * sim.field[1, :, :])
+
+    # Forces
     elif colormap_type == 2:
         colormaptobe = np.sqrt(sim.forces[0, :, :] * sim.forces[0, :, :] + sim.forces[1, :, :] * sim.forces[1, :, :])
+
+    # Divergence
     elif colormap_type == 3:
         colormaptobe = 50 * sim.divfield[:, :] + 0.5
+
     global colors
     colors = makecolormap(colormaptobe)
 
@@ -457,8 +470,10 @@ def drawArrow(x, y, vx, vy, size, color):
     glEnd()
     glBegin(GL_TRIANGLES)
     glColor3f(color[0], color[1], color[2])
-    glVertex2f(x + vx, y + vy)
+
     glVertex2f((x + 0.5 * vx) - 2 * (size / DIM) * vy, (y + 0.5 * vy) + 2 * (size / DIM) * vx)
+    glColor3f(color[0]-0.2, color[1]-0.2, color[2]-0.2)
+    glVertex2f(x + vx, y + vy)
     glVertex2f((x + 0.5 * vx) + 2 * (size / DIM) * vy, (y + 0.5 * vy) - 2 * (size / DIM) * vx)
     glEnd()
 
@@ -790,7 +805,7 @@ def main():
 
                     glVertex2f((((i + 0.5) * step / (49 / 2)) - 1), (((j + 0.5) * step / (49 / 1.8)) - 0.8))
                     glVertex2f((((i + 0.5) * step / (49 / 2)) - 1) + vec_scale * sim.field[0, x, y],
-                               ((((j + 0.5) * step / (49 / 1.8)) - 0.8)) + vec_scale * sim.field[1, x, y])
+                               (((j + 0.5) * step / (49 / 1.8)) - 0.8) + vec_scale * sim.field[1, x, y])
             glEnd()
 
         if draw_glyphs >= 2:
