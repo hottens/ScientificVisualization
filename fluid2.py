@@ -64,13 +64,13 @@ scalar_col = 0
 # vector_color:     white, direction_to_color, magnitude_to_color
 # color_schemes:    bw, twotone, rainbow
 # color_map_type:   diffusion, direction / magnitude, force, divergence
-# isolines:         no, yes
+# isolines:         no, yest
 # n_isolines
 
 
-color_dict = {'Field': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_BLACKWHITE, 'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'datatype': 0}, \
- 'Iso': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE, 'show': False, 'clamp_min': 0.0, 'clamp_max':1.0, 'iso_min': 0.7, 'iso_max':1.0, 'iso_n': 1},\
-  'Vector': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE, 'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'n_glyphs': 16, 'draw_glyphs': 1, 'col_mag': 0, 'vec_scale': 5}}
+color_dict = {'Field': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_BLACKWHITE, 'show': False, 'clamp_min': 0.0, 'clamp_max':1.0, 'datatype': 0}, \
+ 'Iso': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE, 'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'iso_min': 0.7, 'iso_max':1.0, 'iso_n': 1},\
+  'Vector': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE, 'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'n_glyphs': 16, 'draw_glyphs': 2, 'col_mag': 0, 'vec_scale': 5}}
 
 
 colormap_vect = np.zeros((256,3))
@@ -848,10 +848,10 @@ def main():
                     y2 = (j + 0.5) * step / ((DIM - 1) / 1.8) - 0.8
 
                     color = np.ones(3)
-                    if color_dict['Vector']['col_mag']:
+                    if color_dict['Vector']['col_mag'] == 1:
                         color = magnitude_to_color(sim.field[0, round(x), round(y)], sim.field[1, round(x), round(y)],
                                                    color_mag_v)
-                    else:
+                    elif color_dict['Vector']['col_mag'] == 2:
                         color = direction_to_color(sim.field[0, round(x), round(y)], sim.field[1, round(x), round(y)])
 
                     size = sim.field[-1, round(x), round(y)]
