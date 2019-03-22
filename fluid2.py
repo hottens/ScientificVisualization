@@ -302,6 +302,7 @@ def change_colormap(type):
     color_scheme = color_dict[type]['color_scheme']
     colormap = np.zeros((nlevels,3))
     for i in range(0,nlevels):
+        print(i)
         if color_scheme == COLOR_BLACKWHITE:
             colormap[i,:] = bw(i/nlevels, scale)
         elif color_scheme == COLOR_RAINBOW:
@@ -332,7 +333,7 @@ def makecolormap(colormaptobe):
                 val = clamp_min
             elif val > clamp_max:
                 val = clamp_max
-            val = val/(clamp_max-clamp_min) * (nlevels-1)
+            val = (val-clamp_min)/(clamp_max-clamp_min) * (nlevels-1)
             val = int(round(val))
 
             colormap[i, j, :] = colormap_field[val,:]
@@ -592,6 +593,10 @@ def performAction(message):
         sim.visc *= 0.2
     elif action == Action.DRAW_SMOKE.name:
         color_dict['Field']['show'] = not color_dict['Field']['show']
+    elif action == Action.DRAW_VECS.name:
+        color_dict['Vector']['show'] = not color_dict['Vector']['show']
+    elif action == Action.DRAW_ISO.name:
+        color_dict['Iso']['show'] = not color_dict['Iso']['show']
     elif action == Action.GLYPH_CHANGE.name:
         color_dict['Vector']['draw_glyphs'] += 1
         if color_dict['Vector']['draw_glyphs'] > 3:
@@ -629,12 +634,28 @@ def performAction(message):
         if level > 3:
             level = 0
         NLEVELS = levels[level]
+    elif action == Action.SET_NLEVELS_FIELD.name:
+        color_dict['Field']['nlevels'] = int(a[1])
+        change_colormap('Field')
+    elif action == Action.SET_NLEVELS_ISO.name:
+        color_dict['Iso']['nlevels'] = int(a[1])
+        change_colormap('Iso')
+    elif action == Action.SET_NLEVELS_VECTOR.name:
+        color_dict['Vector']['nlevels'] = int(a[1])
+        change_colormap('Vector')
     elif action == Action.GLYPH_CHANGE_N.name:
         color_dict['Vector']['n_glyphs'] += 5
         if color_dict['Vector']['n_glyphs'] > 50:
             color_dict['Vector']['n_glyphs'] = 5
-    elif action == Action.SET_SCALE.name:
-        scale = float(a[1])
+    elif action == Action.SET_SCALE_FIELD.name:
+        color_dict['Field']['scale'] = float(a[1])
+        change_colormap('Field')
+    elif action == Action.SET_SCALE_VECTOR.name:
+        color_dict['Vector']['scale'] = float(a[1])
+        change_colormap('Vector')
+    elif action == Action.SET_SCALE_ISO.name:
+        color_dict['Iso']['scale'] = float(a[1])
+        change_colormap('Iso')
     elif action == Action.CHANGE_ISO_COL.name:
         iso_col += 1
         if iso_col > 4:
@@ -653,7 +674,14 @@ def performAction(message):
         color_dict['Iso']['color_scheme'] = 2
     elif action == Action.COLOR_ISO_WHITE.name:
         color_dict['Iso']['color_scheme'] = 3
-
+    elif action == Action.COLORMAP_TYPE_DENSITY.name:
+        color_dict['Field']['datatype'] = 0
+    elif action == Action.COLORMAP_TYPE_VELOCITY.name:
+        color_dict['Field']['datatype'] = 1
+    elif action == Action.COLORMAP_TYPE_FORCES.name:
+        color_dict['Field']['datatype'] = 2
+    elif action == Action.COLORMAP_TYPE_DIVERGENCE.name:
+        color_dict['Field']['datatype'] = 4
     elif action == Action.QUIT.name:
         global keep_connection
         keep_connection = False
@@ -815,50 +843,52 @@ def main():
         draw_glyphs = color_dict['Vector']['draw_glyphs']
         n_glyphs = color_dict['Vector']['n_glyphs']
         vec_scale = color_dict['Vector']['vec_scale']
-        if draw_glyphs == 1:
-            glBegin(GL_LINES)
-            step = DIM / n_glyphs
-            for i in range(0, n_glyphs):
-                for j in range(0, n_glyphs):
+        show_vecs = color_dict['Vector']['show']
+        if show_vecs:
+            if draw_glyphs == 1 :
+                glBegin(GL_LINES)
+                step = DIM / n_glyphs
+                for i in range(0, n_glyphs):
+                    for j in range(0, n_glyphs):
 
-                    x = round(i * step)
-                    y = round(j * step)
-                    color = np.ones(3)
-                    if color_dict['Vector']['col_mag'] == 1:
-                        color = magnitude_to_color(sim.field[0, x, y], sim.field[1, x, y], color_mag_v)
-                    elif color_dict['Vector']['col_mag'] == 2:
-                        color = direction_to_color(sim.field[0, x, y], sim.field[1, x, y])
-                    glColor3f(color[0], color[1], color[2])
+                        x = round(i * step)
+                        y = round(j * step)
+                        color = np.ones(3)
+                        if color_dict['Vector']['col_mag'] == 1:
+                            color = magnitude_to_color(sim.field[0, x, y], sim.field[1, x, y], color_mag_v)
+                        elif color_dict['Vector']['col_mag'] == 2:
+                            color = direction_to_color(sim.field[0, x, y], sim.field[1, x, y])
+                        glColor3f(color[0], color[1], color[2])
 
-                    glVertex2f((((i + 0.5) * step / (49 / 2)) - 1), (((j + 0.5) * step / (49 / 1.8)) - 0.8))
-                    glVertex2f((((i + 0.5) * step / (49 / 2)) - 1) + vec_scale * sim.field[0, x, y],
-                               (((j + 0.5) * step / (49 / 1.8)) - 0.8) + vec_scale * sim.field[1, x, y])
-            glEnd()
+                        glVertex2f((((i + 0.5) * step / (49 / 2)) - 1), (((j + 0.5) * step / (49 / 1.8)) - 0.8))
+                        glVertex2f((((i + 0.5) * step / (49 / 2)) - 1) + vec_scale * sim.field[0, x, y],
+                                   (((j + 0.5) * step / (49 / 1.8)) - 0.8) + vec_scale * sim.field[1, x, y])
+                glEnd()
 
-        if draw_glyphs >= 2:
-            step = DIM / n_glyphs
-            for i in range(n_glyphs):
-                for j in range(n_glyphs):
+            if draw_glyphs >= 2:
+                step = DIM / n_glyphs
+                for i in range(n_glyphs):
+                    for j in range(n_glyphs):
 
-                    x = i * step
-                    y = j * step
-                    vx = step * sim.field[0, round(x), round(y)]
-                    vy = step * sim.field[1, round(x), round(y)]
-                    x2 = (i + 0.5) * step / ((DIM - 1) / 2) - 1
-                    y2 = (j + 0.5) * step / ((DIM - 1) / 1.8) - 0.8
+                        x = i * step
+                        y = j * step
+                        vx = step * sim.field[0, round(x), round(y)]
+                        vy = step * sim.field[1, round(x), round(y)]
+                        x2 = (i + 0.5) * step / ((DIM - 1) / 2) - 1
+                        y2 = (j + 0.5) * step / ((DIM - 1) / 1.8) - 0.8
 
-                    color = np.ones(3)
-                    if color_dict['Vector']['col_mag'] == 1:
-                        color = magnitude_to_color(sim.field[0, round(x), round(y)], sim.field[1, round(x), round(y)],
-                                                   color_mag_v)
-                    elif color_dict['Vector']['col_mag'] == 2:
-                        color = direction_to_color(sim.field[0, round(x), round(y)], sim.field[1, round(x), round(y)])
+                        color = np.ones(3)
+                        if color_dict['Vector']['col_mag'] == 1:
+                            color = magnitude_to_color(sim.field[0, round(x), round(y)], sim.field[1, round(x), round(y)],
+                                                       color_mag_v)
+                        elif color_dict['Vector']['col_mag'] == 2:
+                            color = direction_to_color(sim.field[0, round(x), round(y)], sim.field[1, round(x), round(y)])
 
-                    size = sim.field[-1, round(x), round(y)]
-                    if draw_glyphs == 2:
-                        drawGlyph(x2, y2, vx, vy, size, color)
-                    else:
-                        drawArrow(x2, y2, vx, vy, size, color)
+                        size = sim.field[-1, round(x), round(y)]
+                        if draw_glyphs == 2:
+                            drawGlyph(x2, y2, vx, vy, size, color)
+                        else:
+                            drawArrow(x2, y2, vx, vy, size, color)
         if color_dict['Iso']['show']:
             isolines()
 

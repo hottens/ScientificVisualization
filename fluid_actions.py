@@ -43,7 +43,7 @@ class Action(enum.Enum):
 
     QUIT = 37
 
-    SET_SCALE = 38
+    SET_SCALE_FIELD = 38
     SET_DT = 39
     SET_COLOR_MAG = 40
 
@@ -55,3 +55,16 @@ class Action(enum.Enum):
     COLOR_ISO_RAINBOW = 46
     COLOR_ISO_TWOTONE = 47
     COLOR_ISO_WHITE = 48
+
+
+    SET_SCALE_ISO = 49
+    SET_SCALE_VECTOR = 50
+
+    SET_NLEVELS_FIELD = 51
+    SET_NLEVELS_ISO = 52
+    SET_NLEVELS_VECTOR = 53
+
+    DRAW_VECS = 54
+    DRAW_ISO = 55
+
+    COLORMAP_TYPE_DIVERGENCE = 56
