@@ -137,6 +137,11 @@ INlevelsB = tkinter.Button(f3, text="Set Number of Colors", command=lambda: call
 
 IShow = tkinter.Button(f3, text = "Show Isolines",command=lambda: callBack(Action.DRAW_ISO))
 
+visc_frame = ttk.Labelframe(top, text='Viscosity')
+visc_up = tkinter.Button(visc_frame, text="Visc up", command=lambda: callBack(Action.VISC_UP))
+visc_down = tkinter.Button(visc_frame, text="Visc down", command=lambda: callBack(Action.VISC_DOWN))
+visc_up.grid(column=0,row=0, columnspan=1, sticky="nsew")
+visc_down.grid(column=1,row=0, columnspan=1, sticky="nsew")
 
 DtSlider = tkinter.Scale(top, from_=0.1, to=1.0, resolution=0.001, orient='horizontal')
 DtSlider.set(0.4)
@@ -151,6 +156,8 @@ FScaleB.pack()
 DtSlider.pack()
 DtButton.pack()
 FreezeButton.pack()
+visc_frame.pack()
+
 isoMinSlider.pack()
 isoMinButton.pack()
 isoMaxSlider.pack()
