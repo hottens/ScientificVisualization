@@ -565,7 +565,6 @@ def performAction(message):
     global level
     global scale
 
-
     a = message.split(':')
     action = a[0]
 
@@ -657,9 +656,9 @@ def performAction(message):
         color_dict['Iso']['scale'] = float(a[1])
         change_colormap('Iso')
     elif action == Action.CHANGE_ISO_COL.name:
-        iso_col += 1
-        if iso_col > 4:
-            iso_col = 0
+        color_dict['Iso']['color_scheme'] += 1
+        if color_dict['Iso']['color_scheme'] > 4:
+            color_dict['Iso']['color_scheme'] = 0
     elif action == Action.SET_ISO_MIN.name:
         color_dict['Iso']['iso_min'] = float(a[1])
     elif action == Action.SET_ISO_MAX.name:

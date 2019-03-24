@@ -46,10 +46,10 @@ def callBack(action, value=None):
 
 ### Field
 ftype_dict = {'Density': Action.COLORMAP_TYPE_DENSITY,
-                      'Divergence': Action.COLORMAP_TYPE_DIVERGENCE,
-                      'Velocity': Action.COLORMAP_TYPE_VELOCITY,
-                      'Forces': Action.COLORMAP_TYPE_FORCES
-                      }
+              'Divergence': Action.COLORMAP_TYPE_DIVERGENCE,
+              'Velocity': Action.COLORMAP_TYPE_VELOCITY,
+              'Forces': Action.COLORMAP_TYPE_FORCES
+              }
 FShow = tkinter.Button(f1, text = "Show Field",command=lambda: callBack(Action.DRAW_SMOKE))
 
 
@@ -77,28 +77,35 @@ VectorColoringDict = {'Black and White': Action.COLOR_MAG_BLACK,
                       'Twotone': Action.COLOR_MAG_TWOTONE
                       }
 v_color = ttk.Labelframe(f2, text='Color')
+
 vector_coloring_dropdown = tkinter.StringVar()
 vector_coloring_dropdown.set('Black and White')
 vector_coloring_dropdown.trace('w', option_changed_vc)
 vecColDropdown = tkinter.OptionMenu(v_color, vector_coloring_dropdown, *VectorColoringDict)
 ColorDir = tkinter.Button(v_color, text="Color Dir", command=lambda: callBack(Action.COLOR_DIR))
+v_color.grid(row=2, columnspan=7, sticky='WE', padx=5, pady=5, ipadx=5, ipady=5)
 
 v_type = ttk.Labelframe(f2, text='Type')
 B = tkinter.Button(v_type, text="Change number of vectors", command=lambda: callBack(Action.GLYPH_CHANGE_N))
+v_typeButton = tkinter.Button(v_type, text="Change vector type", command=lambda: callBack(Action.GLYPH_CHANGE))
+v_type.grid(row=1, columnspan=7, sticky='WE', padx=5, pady=5, ipadx=5, ipady=5)
 
 VScale = tkinter.Scale(f2, from_=0.00, to=2.00, resolution=0.01, orient='horizontal')
 VScale.set(1.00)
 VScaleB = tkinter.Button(f2, text="Set Scale", command=lambda: callBack(Action.SET_SCALE_VECTOR, VFScale.get()))
 
-VNlevels = tkinter.Scale(f2, from_=2, to=256, orient='horizontal')
+VNlevels = tkinter.Scale(v_color, from_=2, to=256, orient='horizontal')
 VNlevels.set(50)
-VNlevelsB = tkinter.Button(f2, text="Set Number of Colors", command=lambda: callBack(Action.SET_NLEVELS_VECTOR, VNlevels.get()))
-
-
-
-
-v_color.pack(side='left', fill='x')
-v_type.pack(side='left', fill='x')
+VNlevelsB = tkinter.Button(v_color, text="Set Number of Colors", command=lambda: callBack(Action.SET_NLEVELS_VECTOR, VNlevels.get()))
+VScale.grid(row=3, columnspan=7, sticky='WE', padx=5, pady=5, ipadx=5, ipady=5)
+VScaleB.grid(row=4, columnspan=7, sticky='WE', padx=5, pady=5, ipadx=5, ipady=5)
+VShow.grid(row=0, columnspan=7, sticky='WE', padx=5, pady=5, ipadx=5, ipady=5)
+B.pack()
+ColorDir.pack()
+vecColDropdown.pack()
+VNlevels.pack()
+VNlevelsB.pack()
+v_typeButton.pack()
 
 ### Iso
 IsoColoringDict =    {'Black to White': Action.COLOR_ISO_BLACK,
@@ -134,40 +141,34 @@ IShow = tkinter.Button(f3, text = "Show Isolines",command=lambda: callBack(Actio
 DtSlider = tkinter.Scale(top, from_=0.1, to=1.0, resolution=0.001, orient='horizontal')
 DtSlider.set(0.4)
 DtButton = tkinter.Button(top, text="Set dt", command=lambda: callBack(Action.SET_DT, DtSlider.get()))
+FreezeButton = tkinter.Button(top, text="Freeze", command=lambda: callBack(Action.FREEZE))
 
 
 nb.pack()
-B.pack()
 field_data_dropdown.pack()
-ColorDir.pack()
 FScale.pack()
 FScaleB.pack()
 DtSlider.pack()
 DtButton.pack()
+FreezeButton.pack()
 isoMinSlider.pack()
 isoMinButton.pack()
 isoMaxSlider.pack()
 isoMaxButton.pack()
 isoNSlider.pack()
 isoNButton.pack()
-VScale.pack()
-VScaleB.pack()
 IScale.pack()
 IScaleB.pack()
 
 FNlevels.pack()
 FNlevelsB.pack()
-VNlevels.pack()
-VNlevelsB.pack()
 
 INlevels.pack()
 INlevelsB.pack()
 
 FShow.pack()
-VShow.pack()
 IShow.pack()
 
-vecColDropdown.pack()
 isoColDropdown.pack()
 
 
