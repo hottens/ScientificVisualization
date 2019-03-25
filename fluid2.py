@@ -73,7 +73,7 @@ scalar_col = 0
 
 color_dict = {'Field': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_BLACKWHITE, 'show': False, 'clamp_min': 0.0, 'clamp_max':1.0, 'datatype': 0}, \
  'Iso': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE, 'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'iso_min': 0.7, 'iso_max':1.0, 'iso_n': 1},\
-  'Vector': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE, 'show': True, 'clamp_min': 0.0, 'clamp_max':0.1, 'n_glyphs': 16, 'draw_glyphs': 2, 'col_mag': 1, 'vec_scale': 5}}
+  'Vector': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_RAINBOW, 'show': True, 'clamp_min': 0.0, 'clamp_max':0.1, 'n_glyphs': 16, 'draw_glyphs': 2, 'col_mag': 1, 'vec_scale': 5}}
 
 
 colormap_vect = np.zeros((256,3))
@@ -81,11 +81,6 @@ colormap_field = np.zeros((256,3))
 colormap_iso = np.zeros((256,3))
 
 
-glEnable(GL_DEPTH_TEST)
-
-
-# Create and Compile a shader
-# but fail with a meaningful message if something goes wrong
 
 def createAndCompileShader(type, source):
     shader = glCreateShader(type)
@@ -101,10 +96,6 @@ def createAndCompileShader(type, source):
         raise Exception("Couldn't compile shader\nShader compilation Log:\n" + glGetShaderInfoLog(shader))
     return shader
 
-
-# Create and Compile fragment and vertex shaders
-# Transfer data from fragment to vertex shader
-
 vertex_shader = createAndCompileShader(GL_VERTEX_SHADER, """
 varying vec3 v;
 varying vec3 N;
@@ -119,6 +110,7 @@ void main(void)
 
 }
 """);
+
 
 fragment_shader = createAndCompileShader(GL_FRAGMENT_SHADER, """
 varying vec3 N;
@@ -149,9 +141,6 @@ try:
 except OpenGL.error.GLError:
     print(glGetProgramInfoLog(program))
     raise
-
-done = False
-
 t = 0
 
 
@@ -558,15 +547,30 @@ def magnitude_to_color(x, y, colormaptype):
 def drawGlyph(x, y, vx, vy, size, color):
     size += 5
     glBegin(GL_TRIANGLES)
-    glColor3f(color[0], color[1], color[2])
-    glNormal3f(0.5,0.5,0.5)
+    glColor3f(color[0]*0.7, color[1]*0.7, color[2]*0.7)
+    # a = np.array([x + vx, y + vy, 0])
+    # b = np.array([x - 10 / DIM * vy, y + 10 / DIM * vx,0])
+    # c = np.array([x, y,0.8])
+    # d = np.array([x + 10 / DIM * vy, y - 10 / DIM * vx,0])
+    # norm1 = np.cross((b - a),(c-a))
+    # norm1 = norm1/len(norm1)
+    # norm2 = np.cross((c-a),(d-a))
+    # norm2 = norm2/len(norm2)
+    # glNormal3f(norm1[0], norm1[1], norm1[2])
+    # glNormal3f(0.5, -0.5, 0.5)
+
     glVertex3f(x + vx, y + vy, 0)
     glVertex3f(x - 10 / DIM * vy, y + 10 / DIM * vx,0)
+    glColor3f(color[0]*1.2, color[1]*1.2, color[2]*1.2)
     glVertex3f(x, y,0.8)
-    glNormal3f(0.5,-0.5,0.5)
+    # glNormal3f(norm2[0], norm2[1], norm2[2])
+    # glNormal3f(0.5, 0.5, 0.5)
+    # glColor3f(color[0], color[1], color[2])
+    glColor3f(color[0]*0.4, color[1]*0.4, color[2]*0.4)
     glVertex3f(x + vx, y + vy, 0)
-    glVertex3f(x, y,0.8)
     glVertex3f(x + 10 / DIM * vy, y - 10 / DIM * vx,0)
+    glColor3f(color[0], color[1], color[2])
+    glVertex3f(x, y,0.8)
     glEnd()
 
 
@@ -836,6 +840,7 @@ def getGuiInput():
 
 
 def main():
+
     print("Fluid Flow Simulation and Visualization\n")
     print("=======================================\n")
     print("Click and drag the mouse to steer the flow!\n")
@@ -877,8 +882,14 @@ def main():
     glBindBuffer(GL_ARRAY_BUFFER, colors_vbo)
     glBufferData(GL_ARRAY_BUFFER, len(colors) * 4, (c_float * len(colors))(*colors), GL_STATIC_DRAW)
 
+
+    # glColor3f(1,1,1)
+
     running = True
     while running:
+
+
+
         clock.tick(60)
         global dragbool
         global keep_connection
@@ -902,24 +913,7 @@ def main():
 
 
 
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
-        # gluPerspective(90, 1, 0.01, 1)
-        # gluLookAt(0,0, 1,0, 0, 0, 0, 1, 0)
-        glClearColor(0.0, 0.0, 0.0, 1.0)
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-        glMatrixMode(GL_MODELVIEW)
-
-
-        ld = [4,0.8,10]
-
-        # pass data to fragment shader
-
-        glLightfv(GL_LIGHT0, GL_POSITION, [ld[0], ld[1], ld[2]]);
-
-        glColor3f(1,1,1)
-        glLoadIdentity()
 
 
 
@@ -942,12 +936,23 @@ def main():
 
         glDrawArrays(GL_TRIANGLES, 0, 43218)
 
-        makelegend()
+
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        # gluPerspective(90, 1, 0.01, 1)
+        # gluLookAt(0,0, 1,0, 0, 0, 0, 1, 0)
+        # glClearColor(0.0, 0.0, 0.0, 1.0)
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+
+
+
+
         draw_glyphs = color_dict['Vector']['draw_glyphs']
         n_glyphs = color_dict['Vector']['n_glyphs']
         vec_scale = color_dict['Vector']['vec_scale']
         show_vecs = color_dict['Vector']['show']
         if show_vecs:
+            glNewList(1, GL_COMPILE)
             if draw_glyphs == 1 :
                 glBegin(GL_LINES)
                 step = DIM / n_glyphs
@@ -970,7 +975,7 @@ def main():
 
             if draw_glyphs >= 2:
                 step = DIM / n_glyphs
-                glNewList(1, GL_COMPILE)
+
                 for i in range(n_glyphs):
                     for j in range(n_glyphs):
 
@@ -993,19 +998,42 @@ def main():
                             drawGlyph(x2, y2, vx, vy, size, color)
                         else:
                             drawArrow(x2, y2, vx, vy, size, color)
-                glEndList()
+            glEndList()
         if color_dict['Iso']['show']:
             isolines()
-        glPushMatrix()
-        glCallList(1)
-        glPopMatrix()
+        # glMatrixMode(GL_MODELVIEW)
+
+
+
+
+        # pass data to fragment shader
+
+        # ld = [1,0.8,1]
+        # glLightfv(GL_LIGHT0, GL_AMBIENT, [1,1,1])
+        # glLightfv(GL_LIGHT0, GL_DIFFUSE, [1, 1, 1]);
+        # glLightfv(GL_LIGHT0, GL_POSITION,[ld[0], ld[1], ld[2]]);
+
+
+        # glColor3f(1,1,1)
+
+        # glLoadIdentity()
+        # glPushMatrix()
+        if show_vecs:
+            glCallList(1)
+        # glPopMatrix()
+        makelegend()
         pygame.display.flip()
 
 
 pygame.init()
 screen = pygame.display.set_mode((winWidth, winHeight + 55), pygame.OPENGL | pygame.DOUBLEBUF, 24)
-glViewport(0, 0, winWidth, winHeight + 55)
-glClearColor(0.0, 0.5, 0.5, 1.0)
-glEnableClientState(GL_VERTEX_ARRAY)
 
+# glEnable(GL_DEPTH_TEST)
+# glShadeModel(GL_FLAT)
+# glEnable(GL_LIGHTING)
+# glEnable(GL_LIGHT0)
+# glViewport(0, 0, winWidth, winHeight + 55)
+# glClearColor(0.0, 0.5, 0.5, 1.0)
+glEnableClientState(GL_VERTEX_ARRAY)
+# glEnableClientState(GL_COLOR_ARRAY)
 main()
