@@ -300,9 +300,8 @@ def change_colormap(type):
     nlevels = color_dict[type]['nlevels']
     scale = color_dict[type]['scale']
     color_scheme = color_dict[type]['color_scheme']
-    colormap = np.zeros((nlevels,3))
+    colormap = np.zeros((nlevels, 3))
     for i in range(0,nlevels):
-        print(i)
         if color_scheme == COLOR_BLACKWHITE:
             colormap[i,:] = bw(i/nlevels, scale)
         elif color_scheme == COLOR_RAINBOW:
@@ -318,7 +317,6 @@ def change_colormap(type):
         colormap_iso = colormap
     elif type == 'Vector':
         colormap_vect = colormap
-
 
 
 def makecolormap(colormaptobe):
@@ -598,7 +596,7 @@ def performAction(message):
         color_dict['Iso']['show'] = not color_dict['Iso']['show']
     elif action == Action.GLYPH_CHANGE.name:
         color_dict['Vector']['draw_glyphs'] += 1
-        if color_dict['Vector']['draw_glyphs'] > 3:
+        if color_dict['Vector']['draw_glyphs'] > 4:
             color_dict['Vector']['draw_glyphs'] = 0
     elif action == Action.SCALAR_COLOR_CHANGE.name:
         color_dict['Field']['color_scheme'] += 1
@@ -752,6 +750,29 @@ def getGuiInput():
         connection.close()
 
 
+def interpolateVelocity(x, y):
+    x_floor = int(np.floor(x))
+    x_ceil  = int(np.ceil(x))
+    y_floor = int(np.floor(y))
+    y_ceil  = int(np.ceil(y))
+
+    x = x-x_floor
+    y = y-y_floor
+
+    #print("xf: {}, xc: {}, yf: {}, yc: {}".format(x_floor, x_ceil, y_floor, y_ceil))
+
+    vx = sim.field[0, x_floor, y_floor] * (1 - x) * (1 - y) + \
+         sim.field[0, x_ceil,  y_floor] * x       * (1 - y) + \
+         sim.field[0, x_floor, y_ceil ] * (1 - x) * y       + \
+         sim.field[0, x_ceil,  y_ceil ] * x * y
+
+    vy = sim.field[1, x_floor, y_floor] * (1 - x) * (1 - y) + \
+         sim.field[1, x_ceil, y_floor] * x * (1 - y) + \
+         sim.field[1, x_floor, y_ceil] * (1 - x) * y + \
+         sim.field[1, x_ceil, y_ceil] * x * y
+
+    return [vx, vy]
+
 def main():
     print("Fluid Flow Simulation and Visualization\n")
     print("=======================================\n")
@@ -844,7 +865,7 @@ def main():
         vec_scale = color_dict['Vector']['vec_scale']
         show_vecs = color_dict['Vector']['show']
         if show_vecs:
-            if draw_glyphs == 1 :
+            if draw_glyphs == 1:
                 glBegin(GL_LINES)
                 step = DIM / n_glyphs
                 for i in range(0, n_glyphs):
@@ -886,8 +907,38 @@ def main():
                         size = sim.field[-1, round(x), round(y)]
                         if draw_glyphs == 2:
                             drawGlyph(x2, y2, vx, vy, size, color)
-                        else:
+                        elif draw_glyphs == 3:
                             drawArrow(x2, y2, vx, vy, size, color)
+                        else:
+                            glBegin(GL_LINES)
+                            T = 5
+                            x_d = x2
+                            y_d = y2
+                            for t in range(T):
+                                if x > 49 or y > 49 or x < 0 or y < 0:
+                                    break
+                                #print("x: {}, y: {}".format(x, y))
+                                [vx, vy] = interpolateVelocity(x, y)
+                                # vx = sim.field[0, round(x), round(y)]
+                                # vy = sim.field[1, round(x), round(y)]
+                                v_l = np.sqrt(vx*vx + vy*vy)
+                                x_t = x + vx / (v_l)
+                                y_t = y + vy / (v_l)
+                                color = np.ones(3)
+                                if color_dict['Vector']['col_mag'] == 1:
+                                    color = magnitude_to_color(vx, vy, color_mag_v)
+                                elif color_dict['Vector']['col_mag'] == 2:
+                                    color = direction_to_color(vx, vy)
+                                glColor3f(color[0], color[1], color[2])
+
+                                glVertex2f(x_d, y_d)
+                                x_d += vx/(v_l*49)
+                                y_d += vy/(v_l*49)
+                                glVertex2f(x_d, y_d)
+                                x = x_t
+                                y = y_t
+                            glEnd()
+
         if color_dict['Iso']['show']:
             isolines()
 
