@@ -7,6 +7,7 @@ import math
 class Simulation:
 
     def __init__(self, DIM):
+        self.sinkholes = []
         self.DIM = DIM
         self.dt = 0.4
         self.visc = 0.01
@@ -30,6 +31,20 @@ class Simulation:
         self.field0[-1, :, :] = self.field[-1, :, :] * 0.9
         self.forces[:2, :, :] = self.forces[:2, :, :] * 0.85
         self.field0[:2, :, :] = self.forces[:2, :, :]
+
+        for [x, y] in self.sinkholes:
+            f = 3
+            self.forces[0, x - 1, y] = f
+            self.forces[1, x - 1, y] = 0
+
+            self.forces[0, x + 1, y] = -f
+            self.forces[1, x + 1, y] = 0
+
+            self.forces[0, x, y - 1] = 0
+            self.forces[1, x, y - 1] = f
+
+            self.forces[0, x, y + 1] = 0
+            self.forces[1, x, y + 1] = -f
 
     def solve(self):
         DIM = self.DIM

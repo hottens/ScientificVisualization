@@ -50,6 +50,7 @@ colors = []
 
 
 
+
 COLOR_BLACKWHITE = 0
 COLOR_RAINBOW = 1
 COLOR_TWOTONE = 2
@@ -507,7 +508,13 @@ def drawArrow(x, y, vx, vy, size, color):
 
 
 ##### USER INPUT
+def placeSinkHole(mx, my):
+    xi = simulation.clamp((DIM + 1) * (mx / winWidth))
+    yi = simulation.clamp((DIM + 1) * ((winHeight - my) / winHeight))
+    X = int(xi)
+    Y = int(yi)
 
+    sim.sinkholes += [[X, Y]]
 
 # gets the drag movement of the mouse and changes the simulation values
 #       according to these movements
@@ -828,6 +835,9 @@ def main():
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
                     dragbool = True
+                elif event.button == 3:
+                    mx, my = event.pos
+                    placeSinkHole(mx, my)
 
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:
