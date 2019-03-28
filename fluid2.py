@@ -72,9 +72,13 @@ scalar_col = 0
 # n_isolines
 
 
-color_dict = {'Field': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_BLACKWHITE, 'show': False, 'clamp_min': 0.0, 'clamp_max':1.0, 'datatype': 0}, \
- 'Iso': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE, 'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'iso_min': 0.7, 'iso_max':1.0, 'iso_n': 1},\
-  'Vector': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_RAINBOW, 'show': True, 'clamp_min': 0.0, 'clamp_max':0.1, 'n_glyphs': 16, 'draw_glyphs': 2, 'col_mag': 1, 'vec_scale': 5}}
+color_dict = {'Field': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_BLACKWHITE,
+                        'show': False, 'clamp_min': 0.0, 'clamp_max':1.0, 'datatype': 0},
+              'Iso': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE,
+                      'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'iso_min': 0.7, 'iso_max':1.0, 'iso_n': 1},
+              'Vector': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE,
+                         'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'n_glyphs': 16, 'draw_glyphs': 2,
+                         'col_mag': 0, 'vec_scale': 5}}
 
 
 colormap_vect = np.zeros((256,3))
@@ -434,10 +438,14 @@ def vis_color():
     elif colormap_type == 2:
         colormaptobe = np.sqrt(sim.forces[0, :, :] * sim.forces[0, :, :] + sim.forces[1, :, :] * sim.forces[1, :, :])
 
-    # Divergence
+    # Divergence velocity
     elif colormap_type == 3:
 
         colormaptobe = 50 * sim.divfield[:, :] + 0.5
+
+    # Divergence forces
+    elif colormap_type == 4:
+        colormaptobe = 50 * sim.divforces[:, :] + 0.5
 
     global colors
     colors = makecolormap(colormaptobe)
@@ -457,6 +465,21 @@ def makevertices():
     # v = v / (49 / 2) - 1
     v = v.tolist()
     return v
+
+
+def drawText(input, rightalign=False):
+    font = pygame.font.Font (None, 64)
+    textSurface = font.render(str(input), True, (255,255,255,255), (0,0,0,255))
+
+    if rightalign:
+        w = 2*textSurface.get_width()/winWidth
+        position = [1-w,-1,0]
+    else:
+        position = [-1, -1, 0]
+
+    textData = pygame.image.tostring(textSurface, "RGBA", True)
+    glRasterPos3d(*position)
+    glDrawPixels(textSurface.get_width(), textSurface.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, textData)
 
 
 def makelegend():
@@ -491,6 +514,24 @@ def makelegend():
 
     glColorPointer(3, GL_FLOAT, 0, None)
     glDrawArrays(GL_TRIANGLES, 0, 6*length)
+
+    drawText(color_dict['Field']['clamp_min'])
+    drawText(color_dict['Field']['clamp_max'], rightalign=True)
+    # if color_dict['Field']['datatype'] == 0: # rho
+    #     drawText(sim.values['rho']['min'])
+    #     drawText(sim.values['rho']['max'], rightalign=True)
+    # elif color_dict['Field']['datatype'] == 1: # velo
+    #     drawText(sim.values['velo']['min'])
+    #     drawText(sim.values['velo']['max'], rightalign=True)
+    # elif color_dict['Field']['datatype'] == 2: # force
+    #     drawText(sim.values['force']['min'])
+    #     drawText(sim.values['force']['max'], rightalign=True)
+    # elif color_dict['Field']['datatype'] == 3:  # divergence velocity
+    #     drawText(sim.values['div_v']['min'])
+    #     drawText(sim.values['div_v']['max'], rightalign=True)
+    # elif color_dict['Field']['datatype'] == 4:  # divergence forces
+    #     drawText(sim.values['div_f']['min'])
+    #     drawText(sim.values['div_f']['max'], rightalign=True)
 
 
 ########## VECTOR COLORING
@@ -594,12 +635,13 @@ def drawArrow(x, y, vx, vy, size, color):
 
 ##### USER INPUT
 def placeSinkHole(mx, my):
+    size = 4
     xi = simulation.clamp((DIM + 1) * (mx / winWidth))
     yi = simulation.clamp((DIM + 1) * ((winHeight - my) / winHeight))
     X = int(xi)
     Y = int(yi)
 
-    sim.sinkholes += [[X, Y]]
+    sim.sinkholes += [[X, Y, size]]
 
 # gets the drag movement of the mouse and changes the simulation values
 #       according to these movements
@@ -705,7 +747,7 @@ def performAction(message):
         change_colormap('Vector')
     elif action == Action.COLORMAP_CHANGE.name:
         color_dict['Field']['datatype'] += 1
-        if color_dict['Field']['datatype'] > 3:
+        if color_dict['Field']['datatype'] > 4:
             color_dict['Field']['datatype'] = 0
     elif action == Action.FREEZE.name:
         frozen = not frozen
@@ -774,6 +816,8 @@ def performAction(message):
         color_dict['Field']['datatype'] = 2
     elif action == Action.COLORMAP_TYPE_DIVERGENCE.name:
         color_dict['Field']['datatype'] = 3
+    elif action == Action.COLORMAP_TYPE_DIVERGENCE.name:
+        color_dict['Field']['datatype'] = 4
     elif action == Action.QUIT.name:
         global keep_connection
         keep_connection = False
@@ -1048,6 +1092,8 @@ def main():
                                 # vx = sim.field[0, round(x), round(y)]
                                 # vy = sim.field[1, round(x), round(y)]
                                 v_l = np.sqrt(vx*vx + vy*vy)
+                                if v_l < 0.001:
+                                    break
                                 x_t = x + vx / (v_l)
                                 y_t = y + vy / (v_l)
                                 color = np.ones(3)
@@ -1095,6 +1141,8 @@ def main():
 
 
 pygame.init()
+pygame.font.init()
+
 screen = pygame.display.set_mode((winWidth, winHeight + 55), pygame.OPENGL | pygame.DOUBLEBUF, 24)
 
 # glEnable(GL_DEPTH_TEST)

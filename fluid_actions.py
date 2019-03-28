@@ -39,7 +39,7 @@ class Action(enum.Enum):
 
     GLYPH_UP = 34
     GLYPH_DOWN = 35
-    GLYPH_CHANGE_N  = 36
+    GLYPH_CHANGE_N = 36
 
     QUIT = 37
 

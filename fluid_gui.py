@@ -38,8 +38,7 @@ def callBack(action, value=None):
     clientsocket.connect(('localhost', 8089))
     message = action.name
     if value is not None:
-        for v in value:
-            message += ':' + str(v)
+        message += ':' + str(value)
     clientsocket.send(message.encode('utf-8'))
     print(action.name.encode('utf-8'))
 
@@ -97,7 +96,7 @@ v_type.grid(row=1, columnspan=7, sticky='WE', padx=5, pady=5, ipadx=5, ipady=5)
 
 VScale = tkinter.Scale(f2, from_=0.01, to=2.00, resolution=0.01, orient='horizontal')
 VScale.set(1.00)
-VScaleB = tkinter.Button(f2, text="Set Scale", command=lambda: callBack(Action.SET_SCALE_VECTOR, [VFScale.get()]))
+VScaleB = tkinter.Button(f2, text="Set Scale", command=lambda: callBack(Action.SET_SCALE_VECTOR, VScale.get()))
 
 VNlevels = tkinter.Scale(v_color, from_=2, to=256, orient='horizontal')
 VNlevels.set(50)

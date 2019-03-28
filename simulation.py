@@ -7,6 +7,12 @@ import math
 class Simulation:
 
     def __init__(self, DIM):
+        self.values = {'rho': {'min': 0, 'max': 0},
+                       'velo': {'min': 0, 'max': 0},
+                       'force': {'min': 0, 'max': 0},
+                       'div_v': {'min': 0, 'max': 0},
+                       'div_f': {'min': 0, 'max': 0}}
+
         self.sinkholes = []
         self.DIM = DIM
         self.dt = 0.4
@@ -27,24 +33,40 @@ class Simulation:
             self.diffuse_matter()
             self.calc_divergence()
 
+            self.values['force']['min'] = np.floor(np.amin(abs(self.forces[0, :, :] * self.forces[1, :, :])))
+            self.values['force']['max'] = np.ceil(np.amax(abs(self.forces[0, :, :] * self.forces[1, :, :])))
+
+            self.values['velo']['min'] = np.floor(np.amin(abs(self.field[0, :, :] * self.field[1, :, :])))
+            self.values['velo']['max'] = np.ceil(np.amax(abs(self.field[0, :, :] * self.field[1, :, :])))
+
+            self.values['rho']['min'] = np.floor(np.amin(self.field[-1, :, :]))
+            self.values['rho']['max'] = np.ceil(np.amax(self.field[-1, :, :]))
+
+            self.values['div_v']['min'] = np.floor(np.amin(self.divfield))
+            self.values['div_v']['max'] = np.ceil(np.amax(self.divfield))
+
+            self.values['div_f']['min'] = np.floor(np.amin(self.divforces))
+            self.values['div_f']['max'] = np.ceil(np.amax(self.divforces))
+
     def set_forces(self):
         self.field0[-1, :, :] = self.field[-1, :, :] * 0.9
         self.forces[:2, :, :] = self.forces[:2, :, :] * 0.85
         self.field0[:2, :, :] = self.forces[:2, :, :]
 
-        for [x, y] in self.sinkholes:
-            f = 3
-            self.forces[0, x - 1, y] = f
-            self.forces[1, x - 1, y] = 0
+        for [x, y, size] in self.sinkholes:
+            for t in range(1,size):
+                f = t
+                self.forces[0, x-t+1, y-t+1] = f
+                self.forces[1, x-t+1, y-t+1] = f
 
-            self.forces[0, x + 1, y] = -f
-            self.forces[1, x + 1, y] = 0
+                self.forces[0, x + t, y-t+1] = -f
+                self.forces[1, x + t, y-t+1] = f
 
-            self.forces[0, x, y - 1] = 0
-            self.forces[1, x, y - 1] = f
+                self.forces[0, x-t+1, y + t] = f
+                self.forces[1, x-t+1, y + t] = -f
 
-            self.forces[0, x, y + 1] = 0
-            self.forces[1, x, y + 1] = -f
+                self.forces[0, x + t, y + t] = -f
+                self.forces[1, x + t, y + t] = -f
 
     def solve(self):
         DIM = self.DIM
