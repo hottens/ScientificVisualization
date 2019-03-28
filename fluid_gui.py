@@ -46,26 +46,31 @@ def callBack(action, value=None):
 
 ### Field
 ftype_dict = {'Density': Action.COLORMAP_TYPE_DENSITY,
+
               'Divergence': Action.COLORMAP_TYPE_DIVERGENCE,
               'Velocity': Action.COLORMAP_TYPE_VELOCITY,
               'Forces': Action.COLORMAP_TYPE_FORCES
               }
+
+
+
+field_datatype_dropdown = tkinter.StringVar()
+field_datatype_dropdown.set('Density')
+field_datatype_dropdown.trace('w', option_changed_fielddata)
+field_data_dropdown = tkinter.OptionMenu(f1, field_datatype_dropdown, *ftype_dict)
+
+
 FShow = tkinter.Button(f1, text = "Show Field",command=lambda: callBack(Action.DRAW_SMOKE))
 
 
-FScale = tkinter.Scale(f1, from_=0.00, to=2.00, resolution=0.01, orient='horizontal')
+FScale = tkinter.Scale(f1, from_=0.01, to=2.00, resolution=0.01, orient='horizontal')
 FScale.set(1.00)
-FScaleB = tkinter.Button(f1, text="Set Scale", command=lambda: callBack(Action.SET_SCALE_FIELD, FScale.get()))
+FScaleB = tkinter.Button(f1, text="Set Scale", command=lambda: callBack(Action.SET_SCALE_FIELD, [FScale.get()]))
 
 FNlevels = tkinter.Scale(f1, from_=2.0, to=256.0, orient='horizontal')
 FNlevels.set(50)
 FNlevelsB = tkinter.Button(f1, text="Set Number of Colors", command=lambda: callBack(Action.SET_NLEVELS_FIELD, [FNlevels.get()]))
 
-f_data = ttk.Labelframe(f1, text='Data in Field')
-field_datatype_dropdown = tkinter.StringVar()
-field_datatype_dropdown.set('Density')
-field_datatype_dropdown.trace('w', option_changed_fielddata)
-field_data_dropdown = tkinter.OptionMenu(f_data, field_datatype_dropdown, *ftype_dict)
 
 
 
@@ -90,9 +95,9 @@ B = tkinter.Button(v_type, text="Change number of vectors", command=lambda: call
 v_typeButton = tkinter.Button(v_type, text="Change vector type", command=lambda: callBack(Action.GLYPH_CHANGE))
 v_type.grid(row=1, columnspan=7, sticky='WE', padx=5, pady=5, ipadx=5, ipady=5)
 
-VScale = tkinter.Scale(f2, from_=0.00, to=2.00, resolution=0.01, orient='horizontal')
+VScale = tkinter.Scale(f2, from_=0.01, to=2.00, resolution=0.01, orient='horizontal')
 VScale.set(1.00)
-VScaleB = tkinter.Button(f2, text="Set Scale", command=lambda: callBack(Action.SET_SCALE_VECTOR, VFScale.get()))
+VScaleB = tkinter.Button(f2, text="Set Scale", command=lambda: callBack(Action.SET_SCALE_VECTOR, [VFScale.get()]))
 
 VNlevels = tkinter.Scale(v_color, from_=2, to=256, orient='horizontal')
 VNlevels.set(50)
@@ -127,7 +132,7 @@ isoNSlider = tkinter.Scale(f3, from_=1, to = 50, orient='horizontal')
 isoNSlider.set(1)
 isoNButton = tkinter.Button(f3, text="Set iso n", command=lambda: callBack(Action.SET_ISO_N, isoNSlider.get()))
 
-IScale = tkinter.Scale(f3, from_=0.00, to=2.00, resolution=0.01, orient='horizontal')
+IScale = tkinter.Scale(f3, from_=0.01, to=2.00, resolution=0.01, orient='horizontal')
 IScale.set(1.00)
 IScaleB = tkinter.Button(f3, text="Set Scale", command=lambda: callBack(Action.SET_SCALE_ISO, IScale.get()))
 
