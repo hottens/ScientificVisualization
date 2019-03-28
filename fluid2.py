@@ -101,52 +101,52 @@ def createAndCompileShader(type, source):
         raise Exception("Couldn't compile shader\nShader compilation Log:\n" + glGetShaderInfoLog(shader))
     return shader
 
-vertex_shader = createAndCompileShader(GL_VERTEX_SHADER, """
-varying vec3 v;
-varying vec3 N;
+# vertex_shader = createAndCompileShader(GL_VERTEX_SHADER, """
+# varying vec3 v;
+# varying vec3 N;
+#
+# void main(void)
+# {
+#
+#    v = gl_ModelViewMatrix * gl_Vertex;
+#    N = gl_NormalMatrix * gl_Normal;
+#
+#    gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
+#
+# }
+# """);
+#
+#
+# fragment_shader = createAndCompileShader(GL_FRAGMENT_SHADER, """
+# varying vec3 N;
+# varying vec3 v;
+#
+# void main(void)
+# {
+#    vec3 L = gl_LightSource[0].position.xyz-v;
+#
+#    // "Lambert's law"? (see notes)
+#    // Rather: faces will appear dimmer when struck in an acute angle
+#    // distance attenuation
+#
+#    float Idiff = max(dot(normalize(L),N),0.0)*pow(length(L),-2.0);
+#
+#    gl_FragColor = vec4(0.5,0,0.5,1.0)+ // purple
+#                   vec4(1.0,1.0,1.0,1.0)*Idiff; // diffuse reflection
+# }
+# """);
 
-void main(void)
-{
-
-   v = gl_ModelViewMatrix * gl_Vertex;
-   N = gl_NormalMatrix * gl_Normal;
-
-   gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
-
-}
-""");
-
-
-fragment_shader = createAndCompileShader(GL_FRAGMENT_SHADER, """
-varying vec3 N;
-varying vec3 v;
-
-void main(void)
-{
-   vec3 L = gl_LightSource[0].position.xyz-v;
-
-   // "Lambert's law"? (see notes)
-   // Rather: faces will appear dimmer when struck in an acute angle
-   // distance attenuation
-
-   float Idiff = max(dot(normalize(L),N),0.0)*pow(length(L),-2.0);
-
-   gl_FragColor = vec4(0.5,0,0.5,1.0)+ // purple
-                  vec4(1.0,1.0,1.0,1.0)*Idiff; // diffuse reflection
-}
-""");
-
-program = glCreateProgram()
-glAttachShader(program, vertex_shader)
-glAttachShader(program, fragment_shader)
-glLinkProgram(program)
-
-try:
-    glUseProgram(program)
-except OpenGL.error.GLError:
-    print(glGetProgramInfoLog(program))
-    raise
-t = 0
+# program = glCreateProgram()
+# glAttachShader(program, vertex_shader)
+# glAttachShader(program, fragment_shader)
+# glLinkProgram(program)
+#
+# try:
+#     glUseProgram(program)
+# except OpenGL.error.GLError:
+#     print(glGetProgramInfoLog(program))
+#     raise
+# t = 0
 
 
 ### Visualization
@@ -337,7 +337,7 @@ def rainbow(cv,scale):
 
 
 # return color from twotone colormap based on a value
-def twotone(value,scale):
+def twotone(cv,scale):
     c1 = [255 / 256, 255 / 256, 51 / 256]
     c2 = [0.0, 51 / 256, 255 / 256]
     global clamp_color
@@ -635,13 +635,12 @@ def drawArrow(x, y, vx, vy, size, color):
 
 ##### USER INPUT
 def placeSinkHole(mx, my):
-    size = 4
     xi = simulation.clamp((DIM + 1) * (mx / winWidth))
     yi = simulation.clamp((DIM + 1) * ((winHeight - my) / winHeight))
     X = int(xi)
     Y = int(yi)
 
-    sim.sinkholes += [[X, Y, size]]
+    sim.sinkholes += [[X, Y]]
 
 # gets the drag movement of the mouse and changes the simulation values
 #       according to these movements
@@ -736,6 +735,15 @@ def performAction(message):
         color_dict['Field']['color_scheme'] += 1
         if color_dict['Field']['color_scheme'] > COLOR_TWOTONE:
             color_dict['Field']['color_scheme'] = COLOR_BLACKWHITE
+    elif action == Action.SCALAR_COLOR_TWOTONE.name:
+        color_dict['Field']['color_scheme'] = COLOR_TWOTONE
+        change_colormap('Field')
+    elif action == Action.SCALAR_COLOR_RAINBOW.name:
+        color_dict['Field']['color_scheme'] = COLOR_RAINBOW
+        change_colormap('Field')
+    elif action == Action.SCALAR_COLOR_BLACK.name:
+        color_dict['Field']['color_scheme'] = COLOR_BLACKWHITE
+        change_colormap('Field')
     elif action == Action.COLOR_MAG_BLACK.name:
         color_dict['Vector']['color_scheme'] = COLOR_BLACKWHITE
         change_colormap('Vector')
@@ -1018,7 +1026,7 @@ def main():
         # gluPerspective(90, 1, 0.01, 1)
         # gluLookAt(0,0, 1,0, 0, 0, 0, 1, 0)
         # glClearColor(0.0, 0.0, 0.0, 1.0)
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        # glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
 
 

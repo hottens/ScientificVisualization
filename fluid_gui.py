@@ -29,6 +29,9 @@ def option_changed_vc(*args):
 def option_changed_fielddata(*args):
     callBack(ftype_dict[field_datatype_dropdown.get()])
 
+def option_changed_fieldcolor(*args):
+    callBack(fcolor_dict[field_color_dropdown.get()])
+
 def option_changed_iso(*args):
     callBack(IsoColoringDict[iso_coloring_dropdown.get()])
 
@@ -50,7 +53,10 @@ ftype_dict = {'Density': Action.COLORMAP_TYPE_DENSITY,
               'Velocity': Action.COLORMAP_TYPE_VELOCITY,
               'Forces': Action.COLORMAP_TYPE_FORCES
               }
-
+fcolor_dict = {'Black and White': Action.SCALAR_COLOR_BLACK,
+               'Rainbow': Action.SCALAR_COLOR_RAINBOW,
+               'Twotone': Action.SCALAR_COLOR_TWOTONE
+              }
 
 
 field_datatype_dropdown = tkinter.StringVar()
@@ -58,17 +64,22 @@ field_datatype_dropdown.set('Density')
 field_datatype_dropdown.trace('w', option_changed_fielddata)
 field_data_dropdown = tkinter.OptionMenu(f1, field_datatype_dropdown, *ftype_dict)
 
+field_color_dropdown = tkinter.StringVar()
+field_color_dropdown.set('Black and White')
+field_color_dropdown.trace('w', option_changed_fieldcolor)
+field_c_dropdown = tkinter.OptionMenu(f1, field_color_dropdown, *fcolor_dict)
+
 
 FShow = tkinter.Button(f1, text = "Show Field",command=lambda: callBack(Action.DRAW_SMOKE))
 
 
 FScale = tkinter.Scale(f1, from_=0.01, to=2.00, resolution=0.01, orient='horizontal')
 FScale.set(1.00)
-FScaleB = tkinter.Button(f1, text="Set Scale", command=lambda: callBack(Action.SET_SCALE_FIELD, [FScale.get()]))
+FScaleB = tkinter.Button(f1, text="Set Scale", command=lambda: callBack(Action.SET_SCALE_FIELD, FScale.get()))
 
 FNlevels = tkinter.Scale(f1, from_=2.0, to=256.0, orient='horizontal')
 FNlevels.set(50)
-FNlevelsB = tkinter.Button(f1, text="Set Number of Colors", command=lambda: callBack(Action.SET_NLEVELS_FIELD, [FNlevels.get()]))
+FNlevelsB = tkinter.Button(f1, text="Set Number of Colors", command=lambda: callBack(Action.SET_NLEVELS_FIELD, FNlevels.get()))
 
 
 
@@ -155,6 +166,7 @@ FreezeButton = tkinter.Button(top, text="Freeze", command=lambda: callBack(Actio
 
 nb.pack()
 field_data_dropdown.pack()
+field_c_dropdown.pack()
 FScale.pack()
 FScaleB.pack()
 DtSlider.pack()

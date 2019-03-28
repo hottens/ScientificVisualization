@@ -1,6 +1,7 @@
 import numpy as np
 import sys
 import math
+from scipy.ndimage import gaussian_filter
 
 
 # Simulation
@@ -53,20 +54,15 @@ class Simulation:
         self.forces[:2, :, :] = self.forces[:2, :, :] * 0.85
         self.field0[:2, :, :] = self.forces[:2, :, :]
 
-        for [x, y, size] in self.sinkholes:
-            for t in range(1,size):
-                f = t
-                self.forces[0, x-t+1, y-t+1] = f
-                self.forces[1, x-t+1, y-t+1] = f
+        m = np.matrix([0.013, 0.108, 0.242, 0.0, -0.242, -0.108, -0.013])
+        fx = np.dot(m.T, [[1, 2, 3, 4, 3, 2, 1]])
+        fy = np.dot(np.matrix([1, 2, 3, 4, 3, 2, 1]).T, m)
 
-                self.forces[0, x + t, y-t+1] = -f
-                self.forces[1, x + t, y-t+1] = f
+        for [x, y] in self.sinkholes:
+            self.forces[0, x - 3:x + 4, y - 3:y + 4] += fx
+            self.forces[1, x - 3:x + 4, y - 3:y + 4] += fy
 
-                self.forces[0, x-t+1, y + t] = f
-                self.forces[1, x-t+1, y + t] = -f
 
-                self.forces[0, x + t, y + t] = -f
-                self.forces[1, x + t, y + t] = -f
 
     def solve(self):
         DIM = self.DIM
