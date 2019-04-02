@@ -70,3 +70,5 @@ class Action(enum.Enum):
     COLORMAP_TYPE_DIVERGENCE = 56
 
     THREEDIM_ON_OFF = 57
+    HEIGHTFACTOR = 58
+    HEIGHTSCALE = 59

@@ -57,7 +57,7 @@ class Simulation:
         m = np.matrix([0.013, 0.108, 0.242, 0.0, -0.242, -0.108, -0.013])
         fx = np.dot(m.T, [[1, 2, 3, 4, 3, 2, 1]])
         fy = np.dot(np.matrix([1, 2, 3, 4, 3, 2, 1]).T, m)
-        for [x, y, size] in self.sinkholes:
+        for [x, y] in self.sinkholes:
             self.field0[-1, x:x+2, y:y+2] = self.field[-1, x:x+2, y:y+2] * 0.8
             self.forces[0,x-1:x+3,y-1:y+3] = self.forces[0,x-1:x+3,y-1:y+3] + matrixy
             self.forces[1,x-1:x+3,y-1:y+3] = self.forces[1,x-1:x+3,y-1:y+3] + matrixx

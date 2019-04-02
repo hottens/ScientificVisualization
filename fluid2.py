@@ -74,7 +74,7 @@ scalar_col = 0
 
 color_dict = {'Field': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_BLACKWHITE,
                         'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'datatype': 0,
-                        '3d': True},
+                        '3d': True, 'heightscale': 1.0, 'heightfactor': 0.05},
               'Iso': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE,
                       'show': False, 'clamp_min': 0.0, 'clamp_max':1.0, 'iso_min': 0.7, 'iso_max':1.0, 'iso_n': 1},
               'Vector': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE,
@@ -159,6 +159,8 @@ def isolines():
     max = color_dict['Iso']['iso_max']
     min = color_dict['Iso']['iso_min']
     n = color_dict['Iso']['iso_n']
+    hf = color_dict['Field']['heightfactor']
+    hs = color_dict['Field']['heightscale']
     if max < min:
         return
     if max == min:
@@ -237,13 +239,13 @@ def isolines():
 
                 if not int(bincode, 2) == 0 or int(bincode, 2) == 15:
                     glColor3f(cv[0], cv[1], cv[2])
-                    glVertex3f((x1 / (50 / 2)) - 1, (y1 / (50 / 1.8)) - 0.8, 0.1 * val)
-                    glVertex3f((x2 / (50 / 2)) - 1, (y2 / (50 / 1.8)) - 0.8, 0.1 * val)
+                    glVertex3f((x1 / (49 / 2)) - 1, (y1 / (49 / 1.8)) - 0.8, (hf * val * 1.3)**hs)
+                    glVertex3f((x2 / (49 / 2)) - 1, (y2 / (49 / 1.8)) - 0.8, (hf * val * 1.3)**hs)
 
                 if int(bincode, 2) == 5 or int(bincode, 2) == 10:
                     glColor3f(cv[0], cv[1], cv[2])
-                    glVertex3f((x12 / (50 / 2)) - 1, (y12 / (50 / 1.8)) - 0.8, 0.1 * val)
-                    glVertex3f((x22 / (50 / 2)) - 1, (y22 / (50 / 1.8)) - 0.8, 0.1 * val)
+                    glVertex3f((x12 / (49 / 2)) - 1, (y12 / (49 / 1.8)) - 0.8, (hf * val *1.3)**hs)
+                    glVertex3f((x22 / (49 / 2)) - 1, (y22 / (49 / 1.8)) - 0.8, (hf * val *1.3)**hs)
     glEnd()
 
 
@@ -455,7 +457,8 @@ def vis_color():
 # returns the vertices needed for printing the colormap
 def makevertices():
     threedim = color_dict['Field']['3d']
-
+    hf = color_dict['Field']['heightfactor']
+    hs = color_dict['Field']['heightscale']
     v = []
     for i in range(49):
         for j in range(49):
@@ -463,10 +466,10 @@ def makevertices():
                 z =  [sim.field[-1,i,j],sim.field[-1,i,j+1],sim.field[-1,i+1,j+1],sim.field[-1,i+1,j]]
             else:
                 z = [-1,-1,-1,-1]
-            p0 = [i / (49 / 2) - 1, j / (49 / 1.8) - 0.8, 0.1* z[0]]
-            p1 = [i / (49 / 2) - 1, (j + 1) / (49 / 1.8) - 0.8, 0.1*z[1]]
-            p2 = [(i + 1) / (49 / 2) - 1, (j + 1) / (49 / 1.8) - 0.8, 0.1*z[2]]
-            p3 = [(i + 1) / (49 / 2) - 1, j / (49 / 1.8) - 0.8,0.1* z[3]]
+            p0 = [i / (49 / 2) - 1, j / (49 / 1.8) - 0.8, (hf* z[0])**hs]
+            p1 = [i / (49 / 2) - 1, (j + 1) / (49 / 1.8) - 0.8, (hf*z[1])**hs]
+            p2 = [(i + 1) / (49 / 2) - 1, (j + 1) / (49 / 1.8) - 0.8, (hf*z[2])**hs]
+            p3 = [(i + 1) / (49 / 2) - 1, j / (49 / 1.8) - 0.8,(hf* z[3])**hs]
             v += p0 + p1 + p2 + p0 + p2 + p3
     v = np.array(v)
     # v = v / (49 / 2) - 1
@@ -524,22 +527,6 @@ def makelegend():
 
     drawText(color_dict['Field']['clamp_min'])
     drawText(color_dict['Field']['clamp_max'], rightalign=True)
-    # if color_dict['Field']['datatype'] == 0: # rho
-    #     drawText(sim.values['rho']['min'])
-    #     drawText(sim.values['rho']['max'], rightalign=True)
-    # elif color_dict['Field']['datatype'] == 1: # velo
-    #     drawText(sim.values['velo']['min'])
-    #     drawText(sim.values['velo']['max'], rightalign=True)
-    # elif color_dict['Field']['datatype'] == 2: # force
-    #     drawText(sim.values['force']['min'])
-    #     drawText(sim.values['force']['max'], rightalign=True)
-    # elif color_dict['Field']['datatype'] == 3:  # divergence velocity
-    #     drawText(sim.values['div_v']['min'])
-    #     drawText(sim.values['div_v']['max'], rightalign=True)
-    # elif color_dict['Field']['datatype'] == 4:  # divergence forces
-    #     drawText(sim.values['div_f']['min'])
-    #     drawText(sim.values['div_f']['max'], rightalign=True)
-
 
 ########## VECTOR COLORING
 # direction_to_color: Set the current color by mapping a direction vector (x,y), using
@@ -623,12 +610,17 @@ def drawArrow(x, y, vx, vy, size, color):
     glVertex2f(x, y)
     glEnd()
     glBegin(GL_TRIANGLES)
-    glColor3f(color[0], color[1], color[2])
 
-    glVertex2f((x + 0.5 * vx) - 2 * (size / DIM) * vy, (y + 0.5 * vy) + 2 * (size / DIM) * vx)
-    glColor3f(color[0]-0.2, color[1]-0.2, color[2]-0.2)
-    glVertex2f(x + vx, y + vy)
-    glVertex2f((x + 0.5 * vx) + 2 * (size / DIM) * vy, (y + 0.5 * vy) - 2 * (size / DIM) * vx)
+    glColor3f(color[0]*0.7, color[1]*0.7, color[2]*0.7)
+    glVertex3f(x + vx, y + vy,0)
+    glVertex3f((x + 0.5 * vx) - 2 * (size / DIM) * vy, (y + 0.5 * vy) + 2 * (size / DIM) * vx,0)
+
+    glColor3f(color[0]*1.2, color[1]*1.2, color[2]* 1.2)
+    glVertex3f((x + 0.5 * vx), (y + 0.5 * vy),0)
+    glVertex3f((x + 0.5 * vx), (y + 0.5 * vy),0)
+    glColor3f(color[0]*0.4, color[1]*0.4, color[2]*0.4)
+    glVertex3f(x + vx, y + vy,0)
+    glVertex3f((x + 0.5 * vx) + 2 * (size / DIM) * vy, (y + 0.5 * vy) - 2 * (size / DIM) * vx,0)
     glEnd()
 
 
@@ -833,6 +825,10 @@ def performAction(message):
     elif action == Action.THREEDIM_ON_OFF.name:
         color_dict['Field']['3d'] = not color_dict['Field']['3d']
         vertices = makevertices()
+    elif action == Action.HEIGHTFACTOR.name:
+        color_dict['Field']['heightfactor'] = float(a[1])
+    elif action == Action.HEIGHTSCALE.name:
+        color_dict['Field']['heightscale'] = float(a[1])
     elif action == Action.QUIT.name:
         global keep_connection
         keep_connection = False

@@ -81,7 +81,12 @@ FNlevels = tkinter.Scale(f1, from_=2.0, to=256.0, orient='horizontal')
 FNlevels.set(50)
 FNlevelsB = tkinter.Button(f1, text="Set Number of Colors", command=lambda: callBack(Action.SET_NLEVELS_FIELD, FNlevels.get()))
 
-
+FHeight = tkinter.Scale(f1, from_ =0.01, to= 0.1, resolution = 0.01, orient = 'horizontal')
+FHeight.set(0.05)
+FHeightB = tkinter.Button(f1, text = "Set height factor for 3d", command = lambda: callBack(Action.HEIGHTFACTOR, FHeight.get()))
+FHeightScale = tkinter.Scale(f1, from_ =0.01, to= 2.00, resolution = 0.01, orient = 'horizontal')
+FHeightScale.set(1.0)
+FHeightScaleB = tkinter.Button(f1, text = "Set height scale for 3d", command = lambda: callBack(Action.HEIGHTSCALE, FHeightScale.get()))
 
 
 ### Vector
@@ -182,6 +187,12 @@ isoNSlider.pack()
 isoNButton.pack()
 IScale.pack()
 IScaleB.pack()
+
+FHeight.pack()
+FHeightB.pack()
+
+FHeightScale.pack()
+FHeightScaleB.pack()
 
 FNlevels.pack()
 FNlevelsB.pack()
