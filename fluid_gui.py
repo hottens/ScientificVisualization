@@ -88,6 +88,13 @@ FHeightScale = tkinter.Scale(f1, from_ =0.01, to= 2.00, resolution = 0.01, orien
 FHeightScale.set(1.0)
 FHeightScaleB = tkinter.Button(f1, text = "Set height scale for 3d", command = lambda: callBack(Action.HEIGHTSCALE, FHeightScale.get()))
 
+fieldClaMinSlider = tkinter.Scale(f1, from_=0.0, to = 4.99, resolution=0.001, orient='horizontal')
+fieldClaMinSlider.set(0.0)
+fieldClaMinButton = tkinter.Button(f1, text="Set field clamp min", command=lambda: callBack(Action.SET_FIELD_CLAMP_MIN, fieldClaMinSlider.get()))
+fieldClaMaxSlider = tkinter.Scale(f1, from_=0.02, to = 5.00, resolution=0.001, orient='horizontal')
+fieldClaMaxSlider.set(1.0)
+fieldClaMaxButton = tkinter.Button(f1, text="Set field clamp max", command=lambda: callBack(Action.SET_FIELD_CLAMP_MAX, fieldClaMaxSlider.get()))
+
 
 ### Vector
 VShow = tkinter.Button(f2, text = "Show Vectors",command=lambda: callBack(Action.DRAW_VECS))
@@ -97,6 +104,12 @@ VectorColoringDict = {'Black and White': Action.COLOR_MAG_BLACK,
                       'Twotone': Action.COLOR_MAG_TWOTONE
                       }
 v_color = ttk.Labelframe(f2, text='Color')
+vectClaMinSlider = tkinter.Scale(v_color, from_=0.0, to = 4.99, resolution=0.001, orient='horizontal')
+vectClaMinSlider.set(0.0)
+vectClaMinButton = tkinter.Button(v_color, text="Set vect clamp min", command=lambda: callBack(Action.SET_VECT_CLAMP_MIN, vectClaMinSlider.get()))
+vectClaMaxSlider = tkinter.Scale(v_color, from_=0.02, to = 5.00, resolution=0.001, orient='horizontal')
+vectClaMaxSlider.set(1.0)
+vectClaMaxButton = tkinter.Button(v_color, text="Set vect clamp max", command=lambda: callBack(Action.SET_VECT_CLAMP_MAX, vectClaMaxSlider.get()))
 
 vector_coloring_dropdown = tkinter.StringVar()
 vector_coloring_dropdown.set('Black and White')
@@ -114,6 +127,9 @@ VScale = tkinter.Scale(f2, from_=0.01, to=2.00, resolution=0.01, orient='horizon
 VScale.set(1.00)
 VScaleB = tkinter.Button(f2, text="Set Scale", command=lambda: callBack(Action.SET_SCALE_VECTOR, VScale.get()))
 
+
+
+
 VNlevels = tkinter.Scale(v_color, from_=2, to=256, orient='horizontal')
 VNlevels.set(50)
 VNlevelsB = tkinter.Button(v_color, text="Set Number of Colors", command=lambda: callBack(Action.SET_NLEVELS_VECTOR, VNlevels.get()))
@@ -126,6 +142,7 @@ vecColDropdown.pack()
 VNlevels.pack()
 VNlevelsB.pack()
 v_typeButton.pack()
+
 
 ### Iso
 IsoColoringDict =    {'Black to White': Action.COLOR_ISO_BLACK,
@@ -157,6 +174,16 @@ INlevelsB = tkinter.Button(f3, text="Set Number of Colors", command=lambda: call
 
 IShow = tkinter.Button(f3, text = "Show Isolines",command=lambda: callBack(Action.DRAW_ISO))
 
+
+isoClaMinSlider = tkinter.Scale(f3, from_=0.0, to = 4.99, resolution=0.001, orient='horizontal')
+isoClaMinSlider.set(0.0)
+isoClaMinButton = tkinter.Button(f3, text="Set iso clamp min", command=lambda: callBack(Action.SET_ISO_CLAMP_MIN, isoClaMinSlider.get()))
+isoClaMaxSlider = tkinter.Scale(f3, from_=0.02, to = 5.00, resolution=0.001, orient='horizontal')
+isoClaMaxSlider.set(1.0)
+isoClaMaxButton = tkinter.Button(f3, text="Set iso clamp max", command=lambda: callBack(Action.SET_ISO_CLAMP_MAX, isoClaMaxSlider.get()))
+
+
+
 visc_frame = ttk.Labelframe(top, text='Viscosity')
 visc_up = tkinter.Button(visc_frame, text="Visc up", command=lambda: callBack(Action.VISC_UP))
 visc_down = tkinter.Button(visc_frame, text="Visc down", command=lambda: callBack(Action.VISC_DOWN))
@@ -179,10 +206,23 @@ DtButton.pack()
 FreezeButton.pack()
 visc_frame.pack()
 
+fieldClaMinSlider.pack()
+fieldClaMinButton.pack()
+fieldClaMaxSlider.pack()
+fieldClaMaxButton.pack()
+vectClaMinSlider.pack()
+vectClaMinButton.pack()
+vectClaMaxSlider.pack()
+vectClaMaxButton.pack()
+
 isoMinSlider.pack()
 isoMinButton.pack()
 isoMaxSlider.pack()
 isoMaxButton.pack()
+isoClaMinSlider.pack()
+isoClaMinButton.pack()
+isoClaMaxSlider.pack()
+isoClaMaxButton.pack()
 isoNSlider.pack()
 isoNButton.pack()
 IScale.pack()
@@ -207,5 +247,12 @@ isoColDropdown.pack()
 
 F3d.pack()
 
-
-top.mainloop()
+while True:
+    fieldClaMinSlider.configure(to = fieldClaMaxSlider.get())
+    fieldClaMaxSlider.configure(from_ = fieldClaMinSlider.get())
+    vectClaMinSlider.configure(to = vectClaMaxSlider.get())
+    vectClaMaxSlider.configure(from_ = vectClaMinSlider.get())
+    isoClaMinSlider.configure(to = isoClaMaxSlider.get())
+    isoClaMaxSlider.configure(from_ = isoClaMinSlider.get())
+    top.update_idletasks()
+    top.update()

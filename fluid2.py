@@ -74,7 +74,7 @@ scalar_col = 0
 
 color_dict = {'Field': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_BLACKWHITE,
                         'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'datatype': 0,
-                        '3d': True, 'heightscale': 1.0, 'heightfactor': 0.05},
+                        '3d': False, 'heightscale': 1.0, 'heightfactor': 0.05},
               'Iso': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE,
                       'show': False, 'clamp_min': 0.0, 'clamp_max':1.0, 'iso_min': 0.7, 'iso_max':1.0, 'iso_n': 1},
               'Vector': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE,
@@ -375,11 +375,11 @@ def change_colormap(type):
     colormap = np.zeros((nlevels, 3))
     for i in range(0,nlevels):
         if color_scheme == COLOR_BLACKWHITE:
-            colormap[i,:] = bw(i/nlevels, scale)
+            colormap[i,:] = bw(i/(nlevels-1), scale)
         elif color_scheme == COLOR_RAINBOW:
-            colormap[i,:] = rainbow(i/nlevels, scale)
+            colormap[i,:] = rainbow(i/(nlevels-1), scale)
         elif color_scheme == COLOR_TWOTONE:
-            colormap[i,:] = twotone(i/nlevels, scale)
+            colormap[i,:] = twotone(i/(nlevels-1), scale)
         elif color_scheme == COLOR_WHITE:
             colormap[i,:] = np.ones((1,3))
 
@@ -477,15 +477,16 @@ def makevertices():
     return v
 
 
-def drawText(input, rightalign=False):
-    font = pygame.font.Font (None, 64)
+def drawText(input, num, rightalign=False):
+    font = pygame.font.Font (None, 24)
     textSurface = font.render(str(input), True, (255,255,255,255), (0,0,0,255))
-
+    h = 2*textSurface.get_height()/winHeight
     if rightalign:
         w = 2*textSurface.get_width()/winWidth
-        position = [1-w,-1,0]
+
+        position = [1-w,-1+num*h,0]
     else:
-        position = [-1, -1, 0]
+        position = [-1, -1+num*h, 0]
 
     textData = pygame.image.tostring(textSurface, "RGBA", True)
     glRasterPos3d(*position)
@@ -495,15 +496,36 @@ def drawText(input, rightalign=False):
 def makelegend():
     vertices_leg = []
     colors_leg = []
-    length = color_dict['Field']['nlevels']
+    lengthf = color_dict['Field']['nlevels']
+    lengthv = color_dict['Vector']['nlevels']
+    lengthi = color_dict['Iso']['nlevels']
+    length = lengthf+lengthv+lengthi
 
-    for i in range(length):
-        p0 = [i / (length / 2) - 1, -1.0, 0]
-        p1 = [(i + 1) / (length / 2) - 1, -1.0, 0]
-        p2 = [(i + 1) / (length / 2) - 1, -0.8, 0]
-        p3 = [i / (length / 2) - 1, -0.8, 0]
+    for i in range(lengthf):
+        p0 = [0.8*(i / (lengthf / 2) - 1), -0.867, 0]
+        p1 = [0.8*((i + 1) / (lengthf / 2) - 1), -0.867, 0]
+        p2 = [0.8*((i + 1) / (lengthf / 2) - 1), -0.8, 0]
+        p3 = [0.8*(i / (lengthf / 2) - 1), -0.8, 0]
         vertices_leg += p0 + p1 + p2 + p0 + p2 + p3
         colval = colormap_field[i]
+        colval = colval.tolist()
+        colors_leg += colval * 6
+    for j in range(lengthv):
+        p0 = [0.8*(j / (lengthv / 2) - 1), -0.933, 0]
+        p1 = [0.8*((j + 1) / (lengthv / 2) - 1), -0.933, 0]
+        p2 = [0.8*((j + 1) / (lengthv / 2) - 1), -0.867, 0]
+        p3 = [0.8*(j / (lengthv / 2) - 1), -0.867, 0]
+        vertices_leg += p0 + p1 + p2 + p0 + p2 + p3
+        colval = colormap_vect[j]
+        colval = colval.tolist()
+        colors_leg += colval * 6
+    for k in range(lengthi):
+        p0 = [0.8*(k / (lengthi / 2) - 1), -1.0, 0]
+        p1 = [0.8*((k + 1) / (lengthi / 2) - 1), -1.0, 0]
+        p2 = [0.8*((k + 1) / (lengthi / 2) - 1), -0.933, 0]
+        p3 = [0.8*(k / (lengthi / 2) - 1), -0.933, 0]
+        vertices_leg += p0 + p1 + p2 + p0 + p2 + p3
+        colval = colormap_iso[k]
         colval = colval.tolist()
         colors_leg += colval * 6
     vertices_leg = np.array(vertices_leg)
@@ -525,8 +547,12 @@ def makelegend():
     glColorPointer(3, GL_FLOAT, 0, None)
     glDrawArrays(GL_TRIANGLES, 0, 6*length)
 
-    drawText(color_dict['Field']['clamp_min'])
-    drawText(color_dict['Field']['clamp_max'], rightalign=True)
+    drawText(color_dict['Field']['clamp_min'],2)
+    drawText(color_dict['Vector']['clamp_min'],1)
+    drawText(color_dict['Iso']['clamp_min'],0)
+    drawText(color_dict['Field']['clamp_max'],2, rightalign=True)
+    drawText(color_dict['Vector']['clamp_max'],1, rightalign=True)
+    drawText(color_dict['Iso']['clamp_max'],0, rightalign=True)
 
 ########## VECTOR COLORING
 # direction_to_color: Set the current color by mapping a direction vector (x,y), using
@@ -829,6 +855,24 @@ def performAction(message):
         color_dict['Field']['heightfactor'] = float(a[1])
     elif action == Action.HEIGHTSCALE.name:
         color_dict['Field']['heightscale'] = float(a[1])
+    elif action == Action.SET_ISO_CLAMP_MIN.name:
+        color_dict['Iso']['clamp_min'] = float(a[1])
+        change_colormap('Iso')
+    elif action == Action.SET_ISO_CLAMP_MAX.name:
+        color_dict['Iso']['clamp_max'] = float(a[1])
+        change_colormap('Iso')
+    elif action == Action.SET_FIELD_CLAMP_MIN.name:
+        color_dict['Field']['clamp_min'] = float(a[1])
+        change_colormap('Field')
+    elif action == Action.SET_FIELD_CLAMP_MAX.name:
+        color_dict['Field']['clamp_max'] = float(a[1])
+        change_colormap('Field')
+    elif action == Action.SET_VECT_CLAMP_MIN.name:
+        color_dict['Vector']['clamp_min'] = float(a[1])
+        change_colormap('Vector')
+    elif action == Action.SET_VECT_CLAMP_MAX.name:
+        color_dict['Vector']['clamp_max'] = float(a[1])
+        change_colormap('Vector')
     elif action == Action.QUIT.name:
         global keep_connection
         keep_connection = False
