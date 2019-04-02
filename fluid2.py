@@ -73,9 +73,10 @@ scalar_col = 0
 
 
 color_dict = {'Field': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_BLACKWHITE,
-                        'show': False, 'clamp_min': 0.0, 'clamp_max':1.0, 'datatype': 0},
+                        'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'datatype': 0,
+                        '3d': True},
               'Iso': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE,
-                      'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'iso_min': 0.7, 'iso_max':1.0, 'iso_n': 1},
+                      'show': False, 'clamp_min': 0.0, 'clamp_max':1.0, 'iso_min': 0.7, 'iso_max':1.0, 'iso_n': 1},
               'Vector': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE,
                          'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'n_glyphs': 16, 'draw_glyphs': 2,
                          'col_mag': 0, 'vec_scale': 5}}
@@ -236,13 +237,13 @@ def isolines():
 
                 if not int(bincode, 2) == 0 or int(bincode, 2) == 15:
                     glColor3f(cv[0], cv[1], cv[2])
-                    glVertex2f((x1 / (50 / 2)) - 1, (y1 / (50 / 1.8)) - 0.8)
-                    glVertex2f((x2 / (50 / 2)) - 1, (y2 / (50 / 1.8)) - 0.8)
+                    glVertex3f((x1 / (50 / 2)) - 1, (y1 / (50 / 1.8)) - 0.8, 0.1 * val)
+                    glVertex3f((x2 / (50 / 2)) - 1, (y2 / (50 / 1.8)) - 0.8, 0.1 * val)
 
                 if int(bincode, 2) == 5 or int(bincode, 2) == 10:
                     glColor3f(cv[0], cv[1], cv[2])
-                    glVertex2f((x12 / (50 / 2)) - 1, (y12 / (50 / 1.8)) - 0.8)
-                    glVertex2f((x22 / (50 / 2)) - 1, (y22 / (50 / 1.8)) - 0.8)
+                    glVertex3f((x12 / (50 / 2)) - 1, (y12 / (50 / 1.8)) - 0.8, 0.1 * val)
+                    glVertex3f((x22 / (50 / 2)) - 1, (y22 / (50 / 1.8)) - 0.8, 0.1 * val)
     glEnd()
 
 
@@ -453,13 +454,19 @@ def vis_color():
 
 # returns the vertices needed for printing the colormap
 def makevertices():
+    threedim = color_dict['Field']['3d']
+
     v = []
     for i in range(49):
         for j in range(49):
-            p0 = [i / (49 / 2) - 1, j / (49 / 1.8) - 0.8, -1]
-            p1 = [i / (49 / 2) - 1, (j + 1) / (49 / 1.8) - 0.8, -1]
-            p2 = [(i + 1) / (49 / 2) - 1, (j + 1) / (49 / 1.8) - 0.8, -1]
-            p3 = [(i + 1) / (49 / 2) - 1, j / (49 / 1.8) - 0.8, -1]
+            if threedim:
+                z =  [sim.field[-1,i,j],sim.field[-1,i,j+1],sim.field[-1,i+1,j+1],sim.field[-1,i+1,j]]
+            else:
+                z = [-1,-1,-1,-1]
+            p0 = [i / (49 / 2) - 1, j / (49 / 1.8) - 0.8, 0.1* z[0]]
+            p1 = [i / (49 / 2) - 1, (j + 1) / (49 / 1.8) - 0.8, 0.1*z[1]]
+            p2 = [(i + 1) / (49 / 2) - 1, (j + 1) / (49 / 1.8) - 0.8, 0.1*z[2]]
+            p3 = [(i + 1) / (49 / 2) - 1, j / (49 / 1.8) - 0.8,0.1* z[3]]
             v += p0 + p1 + p2 + p0 + p2 + p3
     v = np.array(v)
     # v = v / (49 / 2) - 1
@@ -589,29 +596,21 @@ def drawGlyph(x, y, vx, vy, size, color):
     size += 5
     glBegin(GL_TRIANGLES)
     glColor3f(color[0]*0.7, color[1]*0.7, color[2]*0.7)
-    # a = np.array([x + vx, y + vy, 0])
-    # b = np.array([x - 10 / DIM * vy, y + 10 / DIM * vx,0])
-    # c = np.array([x, y,0.8])
-    # d = np.array([x + 10 / DIM * vy, y - 10 / DIM * vx,0])
-    # norm1 = np.cross((b - a),(c-a))
-    # norm1 = norm1/len(norm1)
-    # norm2 = np.cross((c-a),(d-a))
-    # norm2 = norm2/len(norm2)
-    # glNormal3f(norm1[0], norm1[1], norm1[2])
-    # glNormal3f(0.5, -0.5, 0.5)
 
-    glVertex3f(x + vx, y + vy, 0)
-    glVertex3f(x - 10 / DIM * vy, y + 10 / DIM * vx,0)
+    glNormal3f(0.5, -0.5, 0.5)
+
+    glVertex3f(x + vx, y + vy, 0.05)
+    glVertex3f(x - 10 / DIM * vy, y + 10 / DIM * vx,0.05)
     glColor3f(color[0]*1.2, color[1]*1.2, color[2]*1.2)
-    glVertex3f(x, y,0.8)
-    # glNormal3f(norm2[0], norm2[1], norm2[2])
-    # glNormal3f(0.5, 0.5, 0.5)
-    # glColor3f(color[0], color[1], color[2])
+    glVertex3f(x, y,0.06)
+
+    glNormal3f(0.5, 0.5, 0.5)
+
     glColor3f(color[0]*0.4, color[1]*0.4, color[2]*0.4)
-    glVertex3f(x + vx, y + vy, 0)
-    glVertex3f(x + 10 / DIM * vy, y - 10 / DIM * vx,0)
+    glVertex3f(x + vx, y + vy, 0.05)
+    glVertex3f(x + 10 / DIM * vy, y - 10 / DIM * vx,0.05)
     glColor3f(color[0], color[1], color[2])
-    glVertex3f(x, y,0.8)
+    glVertex3f(x, y,0.06)
     glEnd()
 
 
@@ -802,6 +801,7 @@ def performAction(message):
         color_dict['Iso']['color_scheme'] += 1
         if color_dict['Iso']['color_scheme'] > 4:
             color_dict['Iso']['color_scheme'] = 0
+        change_colormap('Iso')
     elif action == Action.SET_ISO_MIN.name:
         color_dict['Iso']['iso_min'] = float(a[1])
     elif action == Action.SET_ISO_MAX.name:
@@ -810,12 +810,16 @@ def performAction(message):
         color_dict['Iso']['iso_n'] = int(a[1])
     elif action == Action.COLOR_ISO_BLACK.name:
         color_dict['Iso']['color_scheme'] = 0
+        change_colormap('Iso')
     elif action == Action.COLOR_ISO_RAINBOW.name:
         color_dict['Iso']['color_scheme'] = 1
+        change_colormap('Iso')
     elif action == Action.COLOR_ISO_TWOTONE.name:
         color_dict['Iso']['color_scheme'] = 2
+        change_colormap('Iso')
     elif action == Action.COLOR_ISO_WHITE.name:
         color_dict['Iso']['color_scheme'] = 3
+        change_colormap('Iso')
     elif action == Action.COLORMAP_TYPE_DENSITY.name:
         color_dict['Field']['datatype'] = 0
     elif action == Action.COLORMAP_TYPE_VELOCITY.name:
@@ -826,6 +830,9 @@ def performAction(message):
         color_dict['Field']['datatype'] = 3
     elif action == Action.COLORMAP_TYPE_DIVERGENCE.name:
         color_dict['Field']['datatype'] = 4
+    elif action == Action.THREEDIM_ON_OFF.name:
+        color_dict['Field']['3d'] = not color_dict['Field']['3d']
+        vertices = makevertices()
     elif action == Action.QUIT.name:
         global keep_connection
         keep_connection = False
@@ -971,7 +978,7 @@ def main():
 
 
 
-        clock.tick(60)
+        # clock.tick(60)
         global dragbool
         global keep_connection
         if not keep_connection:
@@ -992,8 +999,11 @@ def main():
             if event.type == pygame.KEYDOWN:
                 keyboard(event.key)
         if dragbool:
-            mx, my = event.pos
-            drag(mx, my)
+            try:
+                mx, my = event.pos
+                drag(mx, my)
+            except AttributeError:
+                pass
 
 
 
@@ -1004,9 +1014,14 @@ def main():
         while not q.empty():
             performAction(q.get())
             # print(q.get())
-
+        threedim = color_dict['Field']['3d']
         sim.do_one_simulation_step(frozen)
+        if threedim:
+            vertices = makevertices()
         vis_color()
+
+        glBindBuffer(GL_ARRAY_BUFFER, vertices_vbo)
+        glBufferData(GL_ARRAY_BUFFER, len(vertices) * 4, (c_float * len(vertices))(*vertices), GL_STATIC_DRAW)
 
         glEnableClientState(GL_COLOR_ARRAY)
 
@@ -1023,9 +1038,15 @@ def main():
 
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-        # gluPerspective(90, 1, 0.01, 1)
-        # gluLookAt(0,0, 1,0, 0, 0, 0, 1, 0)
-        # glClearColor(0.0, 0.0, 0.0, 1.0)
+
+        if threedim:
+            gluPerspective(90, 1, 0.1, 10)
+            gluLookAt(0,-1.5, 0.4,0, 0, 0, 0, 0, 1)
+            glDepthFunc(GL_LESS)
+        else:
+            gluLookAt(0,0, 1,0, 0, 0, 0, 1, 0)
+            glDepthFunc(GL_ALWAYS)
+        glClearColor(0.0, 0.0, 0.0, 1.0)
         # glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
 
@@ -1146,6 +1167,8 @@ def main():
         # glPopMatrix()
         makelegend()
         pygame.display.flip()
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        # glClearColor(0.0, 0.0, 0.0, 1.0)
 
 
 pygame.init()
@@ -1153,7 +1176,7 @@ pygame.font.init()
 
 screen = pygame.display.set_mode((winWidth, winHeight + 55), pygame.OPENGL | pygame.DOUBLEBUF, 24)
 
-# glEnable(GL_DEPTH_TEST)
+glEnable(GL_DEPTH_TEST)
 # glShadeModel(GL_FLAT)
 # glEnable(GL_LIGHTING)
 # glEnable(GL_LIGHT0)

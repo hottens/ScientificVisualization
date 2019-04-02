@@ -71,7 +71,7 @@ field_c_dropdown = tkinter.OptionMenu(f1, field_color_dropdown, *fcolor_dict)
 
 
 FShow = tkinter.Button(f1, text = "Show Field",command=lambda: callBack(Action.DRAW_SMOKE))
-
+F3d = tkinter.Button(f1, text = "3D On/Off",command=lambda: callBack(Action.THREEDIM_ON_OFF))
 
 FScale = tkinter.Scale(f1, from_=0.01, to=2.00, resolution=0.01, orient='horizontal')
 FScale.set(1.00)
@@ -193,6 +193,8 @@ FShow.pack()
 IShow.pack()
 
 isoColDropdown.pack()
+
+F3d.pack()
 
 
 top.mainloop()

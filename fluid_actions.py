@@ -68,3 +68,5 @@ class Action(enum.Enum):
     DRAW_ISO = 55
 
     COLORMAP_TYPE_DIVERGENCE = 56
+
+    THREEDIM_ON_OFF = 57
