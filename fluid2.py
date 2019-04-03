@@ -80,7 +80,7 @@ color_dict = {'Field': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_BLAC
                       'hue': 0,'sat':1.0},
               'Vector': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE,
                          'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'n_glyphs': 16, 'draw_glyphs': 2,
-                         'col_mag': 0, 'vec_scale': 5, 'hue':0,'sat':1.0}}
+                         'col_mag': 0, 'vec_scale': 5, 'hue':0,'sat':1.0, 'velocity': True}}
 
 
 colormap_vect = np.zeros((256,3))
@@ -822,6 +822,8 @@ def performAction(message):
     elif action == Action.CHANGE_SAT_VECT.name:
         color_dict['Vector']['sat'] = float(a[1])
         change_colormap('Vector')
+    elif action == Action.VELO_TO_FORCE.name:
+        color_dict['Vector']['velocity'] = not color_dict['Vector']['velocity']
     elif action == Action.QUIT.name:
         global keep_connection
         keep_connection = False
@@ -1047,7 +1049,10 @@ def main():
         show_vecs = color_dict['Vector']['show']
         if show_vecs:
 
-
+            if color_dict['Vector']['velocity']:
+                vectfield = sim.field[0:2,:,:]
+            else:
+                vectfield = sim.forces
 
             glNewList(1, GL_COMPILE)
             if draw_glyphs == 1 :
@@ -1061,14 +1066,14 @@ def main():
                         y = round(j * step)
                         color = np.ones(3)
                         if color_dict['Vector']['col_mag'] == 1:
-                            color = magnitude_to_color(sim.field[0, x, y], sim.field[1, x, y], color_mag_v)
+                            color = magnitude_to_color(vectfield[0, x, y], vectfield[1, x, y], color_mag_v)
                         elif color_dict['Vector']['col_mag'] == 2:
-                            color = direction_to_color(sim.field[0, x, y], sim.field[1, x, y])
+                            color = direction_to_color(vectfield[0, x, y], vectfield[1, x, y])
                         glColor3f(color[0], color[1], color[2])
 
                         glVertex2f((((i + 0.5) * step / (49 / 2)) - 1), (((j + 0.5) * step / (49 / 1.8)) - 0.8))
-                        glVertex2f((((i + 0.5) * step / (49 / 2)) - 1) + vec_scale * sim.field[0, x, y],
-                                   (((j + 0.5) * step / (49 / 1.8)) - 0.8) + vec_scale * sim.field[1, x, y])
+                        glVertex2f((((i + 0.5) * step / (49 / 2)) - 1) + vec_scale * vectfield[0, x, y],
+                                   (((j + 0.5) * step / (49 / 1.8)) - 0.8) + vec_scale * vectfield[1, x, y])
                 glEnd()
 
             if draw_glyphs >= 2:
@@ -1079,17 +1084,17 @@ def main():
 
                         x = i * step
                         y = j * step
-                        vx = step * sim.field[0, round(x), round(y)]
-                        vy = step * sim.field[1, round(x), round(y)]
+                        vx = step * vectfield[0, round(x), round(y)]
+                        vy = step * vectfield[1, round(x), round(y)]
                         x2 = (i + 0.5) * step / ((DIM - 1) / 2) - 1
                         y2 = (j + 0.5) * step / ((DIM - 1) / 1.8) - 0.8
 
                         color = np.ones(3)
                         if color_dict['Vector']['col_mag'] == 1:
-                            color = magnitude_to_color(sim.field[0, round(x), round(y)], sim.field[1, round(x), round(y)],
+                            color = magnitude_to_color(vectfield[0, round(x), round(y)], vectfield[1, round(x), round(y)],
                                                        color_mag_v)
                         elif color_dict['Vector']['col_mag'] == 2:
-                            color = direction_to_color(sim.field[0, round(x), round(y)], sim.field[1, round(x), round(y)])
+                            color = direction_to_color(vectfield[0, round(x), round(y)], vectfield[1, round(x), round(y)])
 
                         size = sim.field[-1, round(x), round(y)]
                         if draw_glyphs == 2:

@@ -7,6 +7,7 @@ import numpy as np
 top = tkinter.Tk()
 width = 200
 
+velo = True
 #Make the notebook
 nb = ttk.Notebook(top)
 
@@ -36,6 +37,7 @@ def option_changed_iso(*args):
     callBack(IsoColoringDict[iso_coloring_dropdown.get()])
 
 def callBack(action, value=None):
+    global velo
     print(action)
     clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     clientsocket.connect(('localhost', 8089))
@@ -44,6 +46,8 @@ def callBack(action, value=None):
         message += ':' + str(value)
     clientsocket.send(message.encode('utf-8'))
     print(action.name.encode('utf-8'))
+    if action == Action.VELO_TO_FORCE:
+        velo = not velo
 
 
 ### Field
@@ -145,6 +149,7 @@ VSat = tkinter.Scale(v_color, from_ =0, to= 1.00, resolution = 0.01, orient = 'h
 VSat.set(1.0)
 VSatB = tkinter.Button(v_color, text = "Set saturation", command = lambda: callBack(Action.CHANGE_SAT_VECT, VSat.get()))
 
+VdatatypeB = tkinter.Button(f2, text = "Show forcefield", command=lambda: callBack(Action.VELO_TO_FORCE))
 
 
 VNlevels = tkinter.Scale(v_color, from_=2, to=256, orient='horizontal')
@@ -153,6 +158,7 @@ VNlevelsB = tkinter.Button(v_color, text="Set Number of Colors", command=lambda:
 VScale.grid(row=3, columnspan=7, sticky='WE', padx=5, pady=5, ipadx=5, ipady=5)
 VScaleB.grid(row=4, columnspan=7, sticky='WE', padx=5, pady=5, ipadx=5, ipady=5)
 VShow.grid(row=0, columnspan=7, sticky='WE', padx=5, pady=5, ipadx=5, ipady=5)
+VdatatypeB.grid(row = 5, columnspan=7, sticky='WE', padx=5, pady=5, ipadx=5, ipady=5)
 B.pack()
 ColorDir.pack()
 vecColDropdown.pack()
@@ -289,11 +295,16 @@ isoColDropdown.pack()
 F3d.pack()
 
 while True:
+    global velo
     fieldClaMinSlider.configure(to = fieldClaMaxSlider.get()-0.01)
     fieldClaMaxSlider.configure(from_ = fieldClaMinSlider.get()+0.01)
     vectClaMinSlider.configure(to = vectClaMaxSlider.get()-0.01)
     vectClaMaxSlider.configure(from_ = vectClaMinSlider.get()+0.01)
     isoClaMinSlider.configure(to = isoClaMaxSlider.get()-0.01)
     isoClaMaxSlider.configure(from_ = isoClaMinSlider.get()+0.01)
+    if velo:
+        VdatatypeB.configure(text = 'Show forcefield')
+    else:
+        VdatatypeB.configure(text = 'Show velocities')
     top.update_idletasks()
     top.update()

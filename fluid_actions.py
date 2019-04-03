@@ -88,3 +88,5 @@ class Action(enum.Enum):
     CHANGE_SAT_FIELD = 69
     CHANGE_SAT_VECT = 70
     CHANGE_SAT_ISO = 71
+
+    VELO_TO_FORCE = 72
