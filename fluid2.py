@@ -74,12 +74,13 @@ scalar_col = 0
 
 color_dict = {'Field': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_BLACKWHITE,
                         'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'datatype': 0,
-                        '3d': False, 'heightscale': 1.0, 'heightfactor': 0.05},
+                        '3d': False, 'heightscale': 1.0, 'heightfactor': 0.05, 'hue':0,'sat':1.0},
               'Iso': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE,
-                      'show': False, 'clamp_min': 0.0, 'clamp_max':1.0, 'iso_min': 0.7, 'iso_max':1.0, 'iso_n': 1},
+                      'show': False, 'clamp_min': 0.0, 'clamp_max':1.0, 'iso_min': 0.7, 'iso_max':1.0, 'iso_n': 1,
+                      'hue': 0,'sat':1.0},
               'Vector': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE,
                          'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'n_glyphs': 16, 'draw_glyphs': 2,
-                         'col_mag': 0, 'vec_scale': 5, 'streamlinelength': 5}}
+                         'col_mag': 0, 'vec_scale': 5, 'hue':0,'sat':1.0, 'velocity': True, 'streamlinelength': 5}}
 
 
 colormap_vect = np.zeros((256,3))
@@ -87,67 +88,6 @@ colormap_field = np.zeros((256,3))
 colormap_iso = np.zeros((256,3))
 
 
-
-def createAndCompileShader(type, source):
-    shader = glCreateShader(type)
-    glShaderSource(shader, source)
-    glCompileShader(shader)
-
-    # get "compile status" - glCompileShader will not fail with
-    # an exception in case of syntax errors
-
-    result = glGetShaderiv(shader, GL_COMPILE_STATUS)
-
-    if (result != 1):  # shader didn't compile
-        raise Exception("Couldn't compile shader\nShader compilation Log:\n" + glGetShaderInfoLog(shader))
-    return shader
-
-# vertex_shader = createAndCompileShader(GL_VERTEX_SHADER, """
-# varying vec3 v;
-# varying vec3 N;
-#
-# void main(void)
-# {
-#
-#    v = gl_ModelViewMatrix * gl_Vertex;
-#    N = gl_NormalMatrix * gl_Normal;
-#
-#    gl_Position = gl_ModelViewProjectionMatrix * gl_Vertex;
-#
-# }
-# """);
-#
-#
-# fragment_shader = createAndCompileShader(GL_FRAGMENT_SHADER, """
-# varying vec3 N;
-# varying vec3 v;
-#
-# void main(void)
-# {
-#    vec3 L = gl_LightSource[0].position.xyz-v;
-#
-#    // "Lambert's law"? (see notes)
-#    // Rather: faces will appear dimmer when struck in an acute angle
-#    // distance attenuation
-#
-#    float Idiff = max(dot(normalize(L),N),0.0)*pow(length(L),-2.0);
-#
-#    gl_FragColor = vec4(0.5,0,0.5,1.0)+ // purple
-#                   vec4(1.0,1.0,1.0,1.0)*Idiff; // diffuse reflection
-# }
-# """);
-
-# program = glCreateProgram()
-# glAttachShader(program, vertex_shader)
-# glAttachShader(program, fragment_shader)
-# glLinkProgram(program)
-#
-# try:
-#     glUseProgram(program)
-# except OpenGL.error.GLError:
-#     print(glGetProgramInfoLog(program))
-#     raise
-# t = 0
 
 
 ### Visualization
@@ -254,11 +194,12 @@ def isolines():
 # converse hsv to rgb coloring
 def hsv2rgb(h, s, v):
     hint = int(h * 6)
-    frac = 6 * hint
+    frac = (h * 6) - hint
     lx = v * (1 - s)
     ly = v * (1 - s * frac)
     lz = v * (1 - s * (1 - frac))
-    if hint == 6:
+    hint = hint % 6
+    if hint == 0:
         RGB = [v, lz, lx]
     elif hint == 1:
         RGB = [ly, v, lx]
@@ -287,14 +228,15 @@ def rgb2hsv(r, g, b):
         h = 0
     else:
         if r == mx:
-            h = (g - b) / df
+            h = 6 + (g - b) / df
         elif g == mx:
             h = 2 + (b - r) / df
         else:
             h = 4 + (r - g) / df
-        h = h / 6
-        if h < 0:
-            h += 1
+        h = h % 6
+        h = h /6
+        # if h < 0:
+        #     h += 1
 
     return h, s, v
 
@@ -314,53 +256,40 @@ def bw(cv,scale):
 
 
 # return color from rainbow colormap based on a value
-def rainbow(cv,scale):
+def rainbow(cv,scale,hue,sat):
     dx = 0.8
-    # global clamp_color
-    # if cv < clamp_color[0]:
-    #     cv = clamp_color[0]
-    # if cv > clamp_color[1]:
-    #     cv = clamp_color[1]
     cv = cv**scale
     cv = (6 - 2 * dx) * cv + dx
     R = max(0.0, (3 - np.fabs(cv - 4) - np.fabs(cv - 5)) / 2)
     G = max(0.0, (4 - np.fabs(cv - 2) - np.fabs(cv - 4)) / 2)
     B = max(0.0, (3 - np.fabs(cv - 1) - np.fabs(cv - 2)) / 2)
 
-    if not hue == 0:
-        [h, s, v] = rgb2hsv(R, G, B)
 
-        h = (h + hue) % 1
-        R, G, B = hsv2rgb(h, s, v)
-    R = sat * R
-    G = sat * G
-    B = sat * B
+    [h, s, v] = rgb2hsv(R, G, B)
+
+    h = (h + (hue/6)) % 1
+    R, G, B = hsv2rgb(h, sat, v)
 
     return np.array([R, G, B])
 
 
 # return color from twotone colormap based on a value
-def twotone(cv,scale):
+def twotone(cv,scale,hue,sat):
     c1 = [255 / 256, 255 / 256, 51 / 256]
     c2 = [0.0, 51 / 256, 255 / 256]
     global clamp_color
-    # if value < clamp_color[0]:
-    #     value = clamp_color[0]
-    # if value > clamp_color[1]:
-    #     value = clamp_color[1]
+
     value = cv**scale
 
 
     R = value * (c1[0] - c2[0]) + c2[0]
     G = value * (c1[1] - c2[1]) + c2[1]
     B = value * (c1[2] - c2[2]) + c2[2]
-    if not hue == 0:
-        [h, s, v] = rgb2hsv(R, G, B)
-        h = (h + hue) % 1
-        R, G, B = hsv2rgb(h, s, v)
-    R = sat * R
-    G = sat * G
-    B = sat * B
+
+    [h, s, v] = rgb2hsv(R, G, B)
+    h = (h + (hue/6)) % 1
+    R, G, B = hsv2rgb(h, sat, v)
+
 
     return np.array([R, G, B])
 
@@ -372,14 +301,16 @@ def change_colormap(type):
     nlevels = color_dict[type]['nlevels']
     scale = color_dict[type]['scale']
     color_scheme = color_dict[type]['color_scheme']
+    hue = color_dict[type]['hue']
+    sat = color_dict[type]['sat']
     colormap = np.zeros((nlevels, 3))
     for i in range(0,nlevels):
         if color_scheme == COLOR_BLACKWHITE:
             colormap[i,:] = bw(i/(nlevels-1), scale)
         elif color_scheme == COLOR_RAINBOW:
-            colormap[i,:] = rainbow(i/(nlevels-1), scale)
+            colormap[i,:] = rainbow(i/(nlevels-1), scale,hue,sat)
         elif color_scheme == COLOR_TWOTONE:
-            colormap[i,:] = twotone(i/(nlevels-1), scale)
+            colormap[i,:] = twotone(i/(nlevels-1), scale,hue,sat)
         elif color_scheme == COLOR_WHITE:
             colormap[i,:] = np.ones((1,3))
 
@@ -875,6 +806,26 @@ def performAction(message):
         change_colormap('Vector')
     elif action == Action.SET_STREAMLINE_LENGTH.name:
         color_dict['Vector']['streamlinelength'] = int(a[1])
+    elif action == Action.CHANGE_HUE_FIELD.name:
+        color_dict['Field']['hue'] = float(a[1])
+        change_colormap('Field')
+    elif action == Action.CHANGE_HUE_ISO.name:
+        color_dict['Iso']['hue'] = float(a[1])
+        change_colormap('Iso')
+    elif action == Action.CHANGE_HUE_VECT.name:
+        color_dict['Vector']['hue'] = float(a[1])
+        change_colormap('Vector')
+    elif action == Action.CHANGE_SAT_FIELD.name:
+        color_dict['Field']['sat'] = float(a[1])
+        change_colormap('Field')
+    elif action == Action.CHANGE_SAT_ISO.name:
+        color_dict['Iso']['sat'] = float(a[1])
+        change_colormap('Iso')
+    elif action == Action.CHANGE_SAT_VECT.name:
+        color_dict['Vector']['sat'] = float(a[1])
+        change_colormap('Vector')
+    elif action == Action.VELO_TO_FORCE.name:
+        color_dict['Vector']['velocity'] = not color_dict['Vector']['velocity']
     elif action == Action.QUIT.name:
         global keep_connection
         keep_connection = False
@@ -1096,6 +1047,11 @@ def main():
         show_vecs = color_dict['Vector']['show']
         if show_vecs:
 
+            if color_dict['Vector']['velocity']:
+                vectfield = sim.field[0:2,:,:]
+            else:
+                vectfield = sim.forces
+
             glNewList(1, GL_COMPILE)
             step = DIM / n_glyphs
             for i in range(0, n_glyphs):
@@ -1106,31 +1062,31 @@ def main():
                         y = round(j * step)
                         color = np.ones(3)
                         if color_dict['Vector']['col_mag'] == 1:
-                            color = magnitude_to_color(sim.field[0, x, y], sim.field[1, x, y], color_mag_v)
+                            color = magnitude_to_color(vectfield[0, x, y], vectfield[1, x, y], color_mag_v)
                         elif color_dict['Vector']['col_mag'] == 2:
-                            color = direction_to_color(sim.field[0, x, y], sim.field[1, x, y])
+                            color = direction_to_color(vectfield[0, x, y], vectfield[1, x, y])
                         glColor3f(color[0], color[1], color[2])
 
                         glVertex2f((((i + 0.5) * step / (49 / 2)) - 1), (((j + 0.5) * step / (49 / 1.8)) - 0.8))
-                        glVertex2f((((i + 0.5) * step / (49 / 2)) - 1) + vec_scale * sim.field[0, x, y],
-                                   (((j + 0.5) * step / (49 / 1.8)) - 0.8) + vec_scale * sim.field[1, x, y])
+                        glVertex2f((((i + 0.5) * step / (49 / 2)) - 1) + vec_scale * vectfield[0, x, y],
+                                   (((j + 0.5) * step / (49 / 1.8)) - 0.8) + vec_scale * vectfield[1, x, y])
                         glEnd()
 
                     if draw_glyphs >= 2:
 
                         x = i * step
                         y = j * step
-                        vx = step * sim.field[0, round(x), round(y)]
-                        vy = step * sim.field[1, round(x), round(y)]
+                        vx = step * vectfield[0, round(x), round(y)]
+                        vy = step * vectfield[1, round(x), round(y)]
                         x2 = (i + 0.5) * step / ((DIM - 1) / 2) - 1
                         y2 = (j + 0.5) * step / ((DIM - 1) / 1.8) - 0.8
 
                         color = np.ones(3)
                         if color_dict['Vector']['col_mag'] == 1:
-                            color = magnitude_to_color(sim.field[0, round(x), round(y)], sim.field[1, round(x), round(y)],
+                            color = magnitude_to_color(vectfield[0, round(x), round(y)], vectfield[1, round(x), round(y)],
                                                        color_mag_v)
                         elif color_dict['Vector']['col_mag'] == 2:
-                            color = direction_to_color(sim.field[0, round(x), round(y)], sim.field[1, round(x), round(y)])
+                            color = direction_to_color(vectfield[0, round(x), round(y)], vectfield[1, round(x), round(y)])
 
                         size = sim.field[-1, round(x), round(y)]
                         if draw_glyphs == 2:
