@@ -96,6 +96,16 @@ fieldClaMaxSlider.set(1.0)
 fieldClaMaxButton = tkinter.Button(f1, text="Set field clamp max", command=lambda: callBack(Action.SET_FIELD_CLAMP_MAX, fieldClaMaxSlider.get()))
 
 
+FHue = tkinter.Scale(f1, from_ =0, to= 5, orient = 'horizontal')
+FHue.set(0)
+FHueB = tkinter.Button(f1, text = "Set hue", command = lambda: callBack(Action.CHANGE_HUE_FIELD, FHue.get()))
+
+
+FSat = tkinter.Scale(f1, from_ =0, to= 1.00, resolution = 0.01, orient = 'horizontal')
+FSat.set(1.0)
+FSatB = tkinter.Button(f1, text = "Set saturation", command = lambda: callBack(Action.CHANGE_SAT_FIELD, FSat.get()))
+
+
 ### Vector
 VShow = tkinter.Button(f2, text = "Show Vectors",command=lambda: callBack(Action.DRAW_VECS))
 
@@ -127,6 +137,13 @@ VScale = tkinter.Scale(f2, from_=0.01, to=2.00, resolution=0.01, orient='horizon
 VScale.set(1.00)
 VScaleB = tkinter.Button(f2, text="Set Scale", command=lambda: callBack(Action.SET_SCALE_VECTOR, VScale.get()))
 
+VHue = tkinter.Scale(v_color, from_ =0, to= 5, orient = 'horizontal')
+VHue.set(0)
+VHueB = tkinter.Button(v_color, text = "Set hue", command = lambda: callBack(Action.CHANGE_HUE_VECT, VHue.get()))
+
+VSat = tkinter.Scale(v_color, from_ =0, to= 1.00, resolution = 0.01, orient = 'horizontal')
+VSat.set(1.0)
+VSatB = tkinter.Button(v_color, text = "Set saturation", command = lambda: callBack(Action.CHANGE_SAT_VECT, VSat.get()))
 
 
 
@@ -173,6 +190,15 @@ INlevels.set(50)
 INlevelsB = tkinter.Button(f3, text="Set Number of Colors", command=lambda: callBack(Action.SET_ILEVELS_FIELD, INlevels.get()))
 
 IShow = tkinter.Button(f3, text = "Show Isolines",command=lambda: callBack(Action.DRAW_ISO))
+
+IHue = tkinter.Scale(f3, from_ =0, to= 5, orient = 'horizontal')
+IHue.set(0)
+IHueB = tkinter.Button(f3, text = "Set hue", command = lambda: callBack(Action.CHANGE_HUE_ISO, IHue.get()))
+
+ISat = tkinter.Scale(f3, from_ =0, to= 1.00, resolution = 0.01, orient = 'horizontal')
+ISat.set(1.0)
+ISatB = tkinter.Button(f3, text = "Set saturation", command = lambda: callBack(Action.CHANGE_SAT_ISO, ISat.get()))
+
 
 
 isoClaMinSlider = tkinter.Scale(f3, from_=0.0, to = 4.99, resolution=0.001, orient='horizontal')
@@ -240,6 +266,21 @@ FNlevelsB.pack()
 INlevels.pack()
 INlevelsB.pack()
 
+FHue.pack()
+VHue.pack()
+IHue.pack()
+FHueB.pack()
+VHueB.pack()
+IHueB.pack()
+
+FSat.pack()
+VSat.pack()
+ISat.pack()
+FSatB.pack()
+VSatB.pack()
+ISatB.pack()
+
+
 FShow.pack()
 IShow.pack()
 
@@ -248,11 +289,11 @@ isoColDropdown.pack()
 F3d.pack()
 
 while True:
-    fieldClaMinSlider.configure(to = fieldClaMaxSlider.get())
-    fieldClaMaxSlider.configure(from_ = fieldClaMinSlider.get())
-    vectClaMinSlider.configure(to = vectClaMaxSlider.get())
-    vectClaMaxSlider.configure(from_ = vectClaMinSlider.get())
-    isoClaMinSlider.configure(to = isoClaMaxSlider.get())
-    isoClaMaxSlider.configure(from_ = isoClaMinSlider.get())
+    fieldClaMinSlider.configure(to = fieldClaMaxSlider.get()-0.01)
+    fieldClaMaxSlider.configure(from_ = fieldClaMinSlider.get()+0.01)
+    vectClaMinSlider.configure(to = vectClaMaxSlider.get()-0.01)
+    vectClaMaxSlider.configure(from_ = vectClaMinSlider.get()+0.01)
+    isoClaMinSlider.configure(to = isoClaMaxSlider.get()-0.01)
+    isoClaMaxSlider.configure(from_ = isoClaMinSlider.get()+0.01)
     top.update_idletasks()
     top.update()
