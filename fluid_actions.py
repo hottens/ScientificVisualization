@@ -79,3 +79,5 @@ class Action(enum.Enum):
     SET_FIELD_CLAMP_MAX = 63
     SET_VECT_CLAMP_MIN = 64
     SET_VECT_CLAMP_MAX = 65
+
+    SET_STREAMLINE_LENGTH = 66

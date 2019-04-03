@@ -127,7 +127,11 @@ VScale = tkinter.Scale(f2, from_=0.01, to=2.00, resolution=0.01, orient='horizon
 VScale.set(1.00)
 VScaleB = tkinter.Button(f2, text="Set Scale", command=lambda: callBack(Action.SET_SCALE_VECTOR, VScale.get()))
 
-
+streamlinelengthSlider = tkinter.Scale(v_type, from_=1, to=20, resolution=1, orient='horizontal')
+streamlinelengthSlider.set(5)
+streamlinelengthSliderB = tkinter.Button(v_type,
+                                         text="Set Streamline Length",
+                                         command=lambda: callBack(Action.SET_STREAMLINE_LENGTH, streamlinelengthSlider.get()))
 
 
 VNlevels = tkinter.Scale(v_color, from_=2, to=256, orient='horizontal')
@@ -142,6 +146,8 @@ vecColDropdown.pack()
 VNlevels.pack()
 VNlevelsB.pack()
 v_typeButton.pack()
+streamlinelengthSlider.pack()
+streamlinelengthSliderB.pack()
 
 
 ### Iso

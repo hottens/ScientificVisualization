@@ -79,7 +79,7 @@ color_dict = {'Field': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_BLAC
                       'show': False, 'clamp_min': 0.0, 'clamp_max':1.0, 'iso_min': 0.7, 'iso_max':1.0, 'iso_n': 1},
               'Vector': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE,
                          'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'n_glyphs': 16, 'draw_glyphs': 2,
-                         'col_mag': 0, 'vec_scale': 5}}
+                         'col_mag': 0, 'vec_scale': 5, 'streamlinelength': 5}}
 
 
 colormap_vect = np.zeros((256,3))
@@ -746,7 +746,7 @@ def performAction(message):
         color_dict['Iso']['show'] = not color_dict['Iso']['show']
     elif action == Action.GLYPH_CHANGE.name:
         color_dict['Vector']['draw_glyphs'] += 1
-        if color_dict['Vector']['draw_glyphs'] > 4:
+        if color_dict['Vector']['draw_glyphs'] > 5:
             color_dict['Vector']['draw_glyphs'] = 0
     elif action == Action.SCALAR_COLOR_CHANGE.name:
         color_dict['Field']['color_scheme'] += 1
@@ -873,6 +873,8 @@ def performAction(message):
     elif action == Action.SET_VECT_CLAMP_MAX.name:
         color_dict['Vector']['clamp_max'] = float(a[1])
         change_colormap('Vector')
+    elif action == Action.SET_STREAMLINE_LENGTH.name:
+        color_dict['Vector']['streamlinelength'] = int(a[1])
     elif action == Action.QUIT.name:
         global keep_connection
         keep_connection = False
@@ -1087,10 +1089,6 @@ def main():
             gluLookAt(0,0, 1,0, 0, 0, 0, 1, 0)
             glDepthFunc(GL_ALWAYS)
         glClearColor(0.0, 0.0, 0.0, 1.0)
-        # glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-
-
-
 
         draw_glyphs = color_dict['Vector']['draw_glyphs']
         n_glyphs = color_dict['Vector']['n_glyphs']
@@ -1098,16 +1096,12 @@ def main():
         show_vecs = color_dict['Vector']['show']
         if show_vecs:
 
-
-
             glNewList(1, GL_COMPILE)
-            if draw_glyphs == 1 :
-
-                glBegin(GL_LINES)
-                step = DIM / n_glyphs
-                for i in range(0, n_glyphs):
-                    for j in range(0, n_glyphs):
-
+            step = DIM / n_glyphs
+            for i in range(0, n_glyphs):
+                for j in range(0, n_glyphs):
+                    if draw_glyphs == 1 :
+                        glBegin(GL_LINES)
                         x = round(i * step)
                         y = round(j * step)
                         color = np.ones(3)
@@ -1120,13 +1114,9 @@ def main():
                         glVertex2f((((i + 0.5) * step / (49 / 2)) - 1), (((j + 0.5) * step / (49 / 1.8)) - 0.8))
                         glVertex2f((((i + 0.5) * step / (49 / 2)) - 1) + vec_scale * sim.field[0, x, y],
                                    (((j + 0.5) * step / (49 / 1.8)) - 0.8) + vec_scale * sim.field[1, x, y])
-                glEnd()
+                        glEnd()
 
-            if draw_glyphs >= 2:
-                step = DIM / n_glyphs
-
-                for i in range(n_glyphs):
-                    for j in range(n_glyphs):
+                    if draw_glyphs >= 2:
 
                         x = i * step
                         y = j * step
@@ -1148,9 +1138,9 @@ def main():
                         elif draw_glyphs == 3:
                             drawArrow(x2, y2, vx, vy, size, color)
 
-                        else:
+                        elif draw_glyphs == 4:
                             glBegin(GL_LINES)
-                            T = 5
+                            T = color_dict['Vector']['streamlinelength']
                             x_d = x2
                             y_d = y2
                             for t in range(T):
@@ -1179,36 +1169,73 @@ def main():
                                 x = x_t
                                 y = y_t
                             glEnd()
+                        else:
+                            glBegin(GL_TRIANGLES)
+                            T = color_dict['Vector']['streamlinelength']
+                            x_d = x2
+                            y_d = y2
+                            #bottom_lx, bottom_ly, bottom_rx, bottom_ry
+                            for t in range(T):
+                                if x > 49 or y > 49 or x < 0 or y < 0:
+                                    break
+                                # print("x: {}, y: {}".format(x, y))
+                                [vx, vy] = interpolateVelocity(x, y)
+                                # vx = sim.field[0, round(x), round(y)]
+                                # vy = sim.field[1, round(x), round(y)]
+                                v_l = np.sqrt(vx * vx + vy * vy)
 
+                                x_t = x + vx / (v_l)
+                                y_t = y + vy / (v_l)
+                                color = np.ones(3)
+                                if color_dict['Vector']['col_mag'] == 1:
+                                    color = magnitude_to_color(vx, vy, color_mag_v)
+                                elif color_dict['Vector']['col_mag'] == 2:
+                                    color = direction_to_color(vx, vy)
 
+                                size = 70 - 70*t/T
+                                lx = x_d - (size / DIM) * vy/(v_l * 49)
+                                ly = y_d + (size / DIM) * vx/(v_l * 49)
+                                rx = x_d + (size / DIM) * vy / (v_l * 49)
+                                ry = y_d - (size / DIM) * vx / (v_l * 49)
+
+                                if t > 0:
+                                    glColor4f(color[0], color[1], color[2], 1 - (t-1) / T)
+                                    glVertex2f(bottom_lx, bottom_ly)
+                                    glColor4f(color[0], color[1], color[2], 1 - t / T)
+                                    glVertex2f(lx, ly)
+                                    glVertex2f(x_d, y_d)
+
+                                    glColor4f(color[0], color[1], color[2], 1 - (t-1) / T)
+                                    glVertex2f(bottom_rx, bottom_ry)
+                                    glColor4f(color[0], color[1], color[2], 1 - t / T)
+                                    glVertex2f(rx, ry)
+                                    glVertex2f(x_d, y_d)
+
+                                glColor4f(color[0], color[1], color[2], 1 - t / T)
+                                glVertex2f(lx, ly)
+                                glVertex2f(rx, ry)
+
+                                x_d += vx / (v_l * 49)
+                                y_d += vy / (v_l * 49)
+                                glColor4f(color[0], color[1], color[2], 1 - (t + 1) / T)
+                                glVertex2f(x_d, y_d)
+
+                                bottom_lx = lx
+                                bottom_ly = ly
+                                bottom_rx = rx
+                                bottom_ry = ry
+                                x = x_t
+                                y = y_t
+                            glEnd()
             glEndList()
 
         if color_dict['Iso']['show']:
             isolines()
-        # glMatrixMode(GL_MODELVIEW)
-
-
-
-
-        # pass data to fragment shader
-
-        # ld = [1,0.8,1]
-        # glLightfv(GL_LIGHT0, GL_AMBIENT, [1,1,1])
-        # glLightfv(GL_LIGHT0, GL_DIFFUSE, [1, 1, 1]);
-        # glLightfv(GL_LIGHT0, GL_POSITION,[ld[0], ld[1], ld[2]]);
-
-
-        # glColor3f(1,1,1)
-
-        # glLoadIdentity()
-        # glPushMatrix()
         if show_vecs:
             glCallList(1)
-        # glPopMatrix()
         makelegend()
         pygame.display.flip()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
-        # glClearColor(0.0, 0.0, 0.0, 1.0)
 
 
 pygame.init()
@@ -1217,6 +1244,8 @@ pygame.font.init()
 screen = pygame.display.set_mode((winWidth, winHeight + 55), pygame.OPENGL | pygame.DOUBLEBUF, 24)
 
 glEnable(GL_DEPTH_TEST)
+glEnable(GL_BLEND);
+glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 # glShadeModel(GL_FLAT)
 # glEnable(GL_LIGHTING)
 # glEnable(GL_LIGHT0)
