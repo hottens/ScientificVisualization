@@ -918,7 +918,7 @@ def getGuiInput():
         connection.close()
 
 
-def interpolateVelocity(x, y):
+def interpolateVelocity(x, y, vectfield):
     x_floor = int(np.floor(x))
     x_ceil  = int(np.ceil(x))
     y_floor = int(np.floor(y))
@@ -929,15 +929,15 @@ def interpolateVelocity(x, y):
 
     #print("xf: {}, xc: {}, yf: {}, yc: {}".format(x_floor, x_ceil, y_floor, y_ceil))
 
-    vx = sim.field[0, x_floor, y_floor] * (1 - x) * (1 - y) + \
-         sim.field[0, x_ceil,  y_floor] * x       * (1 - y) + \
-         sim.field[0, x_floor, y_ceil ] * (1 - x) * y       + \
-         sim.field[0, x_ceil,  y_ceil ] * x * y
+    vx = vectfield[0, x_floor, y_floor] * (1 - x) * (1 - y) + \
+         vectfield[0, x_ceil,  y_floor] * x       * (1 - y) + \
+         vectfield[0, x_floor, y_ceil ] * (1 - x) * y       + \
+         vectfield[0, x_ceil,  y_ceil ] * x * y
 
-    vy = sim.field[1, x_floor, y_floor] * (1 - x) * (1 - y) + \
-         sim.field[1, x_ceil, y_floor] * x * (1 - y) + \
-         sim.field[1, x_floor, y_ceil] * (1 - x) * y + \
-         sim.field[1, x_ceil, y_ceil] * x * y
+    vy = vectfield[1, x_floor, y_floor] * (1 - x) * (1 - y) + \
+         vectfield[1, x_ceil, y_floor] * x * (1 - y) + \
+         vectfield[1, x_floor, y_ceil] * (1 - x) * y + \
+         vectfield[1, x_ceil, y_ceil] * x * y
 
     return [vx, vy]
 
@@ -1130,7 +1130,7 @@ def main():
                                 if x > 49 or y > 49 or x < 0 or y < 0:
                                     break
                                 #print("x: {}, y: {}".format(x, y))
-                                [vx, vy] = interpolateVelocity(x, y)
+                                [vx, vy] = interpolateVelocity(x, y,vectfield)
                                 # vx = sim.field[0, round(x), round(y)]
                                 # vy = sim.field[1, round(x), round(y)]
                                 v_l = np.sqrt(vx*vx + vy*vy)
@@ -1162,7 +1162,7 @@ def main():
                                 if x > 49 or y > 49 or x < 0 or y < 0:
                                     break
                                 # print("x: {}, y: {}".format(x, y))
-                                [vx, vy] = interpolateVelocity(x, y)
+                                [vx, vy] = interpolateVelocity(x, y,vectfield)
                                 # vx = sim.field[0, round(x), round(y)]
                                 # vy = sim.field[1, round(x), round(y)]
                                 v_l = np.sqrt(vx * vx + vy * vy)
@@ -1207,8 +1207,13 @@ def main():
                                 bottom_ly = ly
                                 bottom_rx = rx
                                 bottom_ry = ry
+
                                 x = x_t
                                 y = y_t
+                                if math.isnan(x):
+                                    break
+                                elif math.isnan(y):
+                                    break
                             glEnd()
             glEndList()
 
