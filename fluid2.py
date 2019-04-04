@@ -80,12 +80,14 @@ color_dict = {'Field': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_BLAC
                       'hue': 0,'sat':1.0},
               'Vector': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE,
                          'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'n_glyphs': 16, 'draw_glyphs': 2,
-                         'col_mag': 0, 'vec_scale': 5, 'hue':0,'sat':1.0, 'velocity': True, 'streamlinelength': 5}}
+                         'col_mag': 0, 'vec_scale': 5, 'hue':0,'sat':1.0, 'velocity': True, 'streamlinelength': 5,
+                         'displacement': False}}
 
 
 colormap_vect = np.zeros((256,3))
 colormap_field = np.zeros((256,3))
 colormap_iso = np.zeros((256,3))
+displacement = np.zeros((2,50,50))
 
 
 
@@ -633,6 +635,16 @@ def drag(mx, my):
     drag.lmy = my
 
 
+def displace():
+    global displacement
+    if color_dict['Vector']['displacement']:
+        for i in range(50):
+            for j in range(50):
+                displacement[0,i,j] = random.uniform(-0.5,0.5)
+                displacement[1,i,j] = random.uniform(-0.5,0.5)
+    else:
+        displacement = np.zeros((2,50,50))
+
 def performAction(message):
     global color_dict
     global color_mag_v
@@ -831,6 +843,9 @@ def performAction(message):
         change_colormap('Vector')
     elif action == Action.VELO_TO_FORCE.name:
         color_dict['Vector']['velocity'] = not color_dict['Vector']['velocity']
+    elif action == Action.DISPLACE.name:
+        color_dict['Vector']['displacement'] = not color_dict['Vector']['displacement']
+        displace()
     elif action == Action.QUIT.name:
         global keep_connection
         keep_connection = False
@@ -887,6 +902,7 @@ def keyboard(key):
         q.put(Action.CHANGE_ISO_COL.name)
     elif key == pygame.K_q:
         q.put(Action.QUIT.name)
+
 
 
 def getGuiInput():
@@ -1039,7 +1055,7 @@ def main():
 
         if threedim:
             gluPerspective(90, 1, 0.1, 10)
-            gluLookAt(0,-1.5, 0.4,0, 0, 0, 0, 0, 1)
+            gluLookAt(0,-1.5, 0.4,0, 0, 0, 0, -0.5, 0.7)
             glDepthFunc(GL_LESS)
         else:
             gluLookAt(0,0, 1,0, 0, 0, 0, 1, 0)
@@ -1050,6 +1066,7 @@ def main():
         n_glyphs = color_dict['Vector']['n_glyphs']
         vec_scale = color_dict['Vector']['vec_scale']
         show_vecs = color_dict['Vector']['show']
+        global displacement
         if show_vecs:
 
             if color_dict['Vector']['velocity']:
@@ -1070,21 +1087,26 @@ def main():
                             color = magnitude_to_color(vectfield[0, x, y], vectfield[1, x, y], color_mag_v)
                         elif color_dict['Vector']['col_mag']==2:
                             color = direction_to_color(vectfield[0, x,y], vectfield[1, x, y])
+                        id = i + displacement[0,i,j]
+                        jd = j + displacement[1,i,j]
+
                         glColor3f(color[0], color[1], color[2])
 
-                        glVertex2f((((i + 0.5) * step / (49 / 2)) - 1), (((j + 0.5) * step / (49 / 1.8)) - 0.8))
-                        glVertex2f((((i + 0.5) * step / (49 / 2)) - 1) + vec_scale * vectfield[0, x, y],
-                                   (((j + 0.5) * step / (49 / 1.8)) - 0.8) + vec_scale * vectfield[1, x, y])
+                        glVertex2f((((id + 0.5) * step / (49 / 2)) - 1), (((jd + 0.5) * step / (49 / 1.8)) - 0.8))
+                        glVertex2f((((id + 0.5) * step / (49 / 2)) - 1) + vec_scale * vectfield[0, x, y],
+                                   (((jd + 0.5) * step / (49 / 1.8)) - 0.8) + vec_scale * vectfield[1, x, y])
                         glEnd()
 
                     if draw_glyphs >= 2:
 
                         x = i * step
                         y = j * step
+                        id = i + displacement[0,i,j]
+                        jd = j + displacement[1,i,j]
                         vx = step * vectfield[0, round(x), round(y)]
                         vy = step * vectfield[1, round(x), round(y)]
-                        x2 = (i + 0.5) * step / ((DIM - 1) / 2) - 1
-                        y2 = (j + 0.5) * step / ((DIM - 1) / 1.8) - 0.8
+                        x2 = (id + 0.5) * step / ((DIM - 1) / 2) - 1
+                        y2 = (jd + 0.5) * step / ((DIM - 1) / 1.8) - 0.8
 
                         color = np.ones(3)
                         if color_dict['Vector']['col_mag'] == 1:

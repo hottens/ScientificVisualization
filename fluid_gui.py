@@ -150,6 +150,9 @@ streamlinelengthSliderB = tkinter.Button(v_type,
                                          text="Set Streamline Length",
                                          command=lambda: callBack(Action.SET_STREAMLINE_LENGTH, streamlinelengthSlider.get()))
 
+VDisplaceB = tkinter.Button(f2, text="Random seeding On/Off", command=lambda: callBack(Action.DISPLACE))
+
+
 VSat = tkinter.Scale(v_color, from_ =0, to= 1.00, resolution = 0.01, orient = 'horizontal')
 VSat.set(1.0)
 VSatB = tkinter.Button(v_color, text = "Set saturation", command = lambda: callBack(Action.CHANGE_SAT_VECT, VSat.get()))
@@ -163,6 +166,7 @@ VNlevelsB = tkinter.Button(v_color, text="Set Number of Colors", command=lambda:
 VScale.grid(row=3, columnspan=7, sticky='WE', padx=5, pady=5, ipadx=5, ipady=5)
 VScaleB.grid(row=4, columnspan=7, sticky='WE', padx=5, pady=5, ipadx=5, ipady=5)
 VShow.grid(row=0, columnspan=7, sticky='WE', padx=5, pady=5, ipadx=5, ipady=5)
+VDisplaceB.grid(row=6, columnspan=7, sticky='WE', padx=5, pady=5, ipadx=5, ipady=5)
 VdatatypeB.grid(row = 5, columnspan=7, sticky='WE', padx=5, pady=5, ipadx=5, ipady=5)
 B.pack()
 ColorDir.pack()

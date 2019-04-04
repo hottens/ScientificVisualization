@@ -92,3 +92,5 @@ class Action(enum.Enum):
     VELO_TO_FORCE = 72
 
     SET_STREAMLINE_LENGTH = 73
+
+    DISPLACE = 74
