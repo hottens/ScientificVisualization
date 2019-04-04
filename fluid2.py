@@ -669,6 +669,11 @@ def performAction(message):
         sim.visc *= 5
     elif action == Action.VISC_DOWN.name:
         sim.visc *= 0.2
+    elif action == Action.COLOR_DIR.name:
+        color_dict['Vector']['col_mag'] = color_dict['Vector']['col_mag'] + 1
+        if color_dict['Vector']['col_mag'] > 2:
+            color_dict['Vector']['col_mag'] = 0
+        change_colormap('Vector')
     elif action == Action.DRAW_SMOKE.name:
         color_dict['Field']['show'] = not color_dict['Field']['show']
     elif action == Action.DRAW_VECS.name:
@@ -1061,10 +1066,10 @@ def main():
                         x = round(i * step)
                         y = round(j * step)
                         color = np.ones(3)
-                        if color_dict['Vector']['col_mag'] == 1:
+                        if color_dict['Vector']['col_mag']==1:
                             color = magnitude_to_color(vectfield[0, x, y], vectfield[1, x, y], color_mag_v)
-                        elif color_dict['Vector']['col_mag'] == 2:
-                            color = direction_to_color(vectfield[0, x, y], vectfield[1, x, y])
+                        elif color_dict['Vector']['col_mag']==2:
+                            color = direction_to_color(vectfield[0, x,y], vectfield[1, x, y])
                         glColor3f(color[0], color[1], color[2])
 
                         glVertex2f((((i + 0.5) * step / (49 / 2)) - 1), (((j + 0.5) * step / (49 / 1.8)) - 0.8))
