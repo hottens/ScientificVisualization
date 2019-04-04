@@ -538,8 +538,13 @@ def magnitude_to_color(x, y, colormaptype):
 
 
 # functions that draws cones as glyphs
-def drawGlyph(x, y, vx, vy, size, color):
-    size += 5
+def drawGlyph(x, y, vx, vy, size, color, max_length):
+    max_length*=1.5
+    vx = np.minimum(vx, float(max_length / DIM))
+    vy = np.minimum(vy, float(max_length / DIM))
+    vx = np.maximum(vx, -float(max_length / DIM))
+    vy = np.maximum(vy, -float(max_length / DIM))
+
     glBegin(GL_TRIANGLES)
     glColor3f(color[0]*0.7, color[1]*0.7, color[2]*0.7)
 
@@ -561,8 +566,14 @@ def drawGlyph(x, y, vx, vy, size, color):
 
 
 # function that draws arrows as glyphs
-def drawArrow(x, y, vx, vy, size, color):
-    size += 5
+def drawArrow(x, y, vx, vy, size, color, max_length):
+    size = max_length
+    max_length *= 1.5
+    vx = np.minimum(vx, float(max_length / DIM))
+    vy = np.minimum(vy, float(max_length / DIM))
+    vx = np.maximum(vx, -float(max_length / DIM))
+    vy = np.maximum(vy, -float(max_length / DIM))
+
     glBegin(GL_LINES)
     glColor3f(color[0], color[1], color[2])
     glVertex2f(x + vx, y + vy)
@@ -1005,7 +1016,7 @@ def main():
                     dragbool = True
                 elif event.button == 3:
                     mx, my = event.pos
-                    placeSinkHole(mx, my)
+                    #placeSinkHole(mx, my)
 
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:
@@ -1117,9 +1128,9 @@ def main():
 
                         size = sim.field[-1, round(x), round(y)]
                         if draw_glyphs == 2:
-                            drawGlyph(x2, y2, vx, vy, size, color)
+                            drawGlyph(x2, y2, vx, vy, size, color, step)
                         elif draw_glyphs == 3:
-                            drawArrow(x2, y2, vx, vy, size, color)
+                            drawArrow(x2, y2, vx, vy, size, color, step)
 
                         elif draw_glyphs == 4:
                             glBegin(GL_LINES)
