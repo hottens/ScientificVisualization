@@ -12,10 +12,11 @@ from threading import Thread
 from PIL import Image
 import random
 
-
 from OpenGL.GL import *
 from OpenGL.GLU import *
 from OpenGL.GLUT import *
+
+
 
 # Server
 serversocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -47,24 +48,46 @@ colors = []
 
 
 
-
+# constants for the different types of color schemes
 COLOR_BLACKWHITE = 0
 COLOR_RAINBOW = 1
 COLOR_TWOTONE = 2
 COLOR_WHITE = 3
-# scalar_col = 0
 
 
-
-
-### Options
-# vectors:          none, hedgehogs, triangles, arrows
-# vector_color:     white, direction_to_color, magnitude_to_color
-# color_schemes:    bw, twotone, rainbow
-# color_map_type:   diffusion, direction / magnitude, force, divergence
-# isolines:         no, yest
-# n_isolines
-
+# dictionary that holds most of the parameters for each of the three types of elements that
+# can be shown.
+#       GENERAL PARAMETERS
+# 'nlevels'     :   holds the number of colors that are shown
+# 'scale'       :   holds the scaling factor for the colors
+# 'color_scheme':   holds in what color scheme the given type is shown
+# 'show'        :   will this element be shown?
+# 'clamp_min'   :   minimum clamp value for this elements color
+# 'clamp_max'   :   maximum clamp value for this elements color
+# 'hue'         :   hue of the shown colors
+# 'sat'         :   saturation of the shown colors
+#       FIELD PARAMETERS
+# '3d'          :   holds whether the Visualization is shown in 3d or note
+# 'heightscale' :   holds the scaling factor for the height
+# 'heightfactor':   holds the factor with which the height is multiplied
+# 'datatype'    :   holds whether density (=0), velocity (=1), forces (=2) or
+#                   divergence (=3) is shown
+#       ISO PARAMETERS
+# 'iso_min'     :   holds value for lowest isoline
+# 'iso_max'     :   holds value for highest isoline
+# 'iso_n'       :   holds how many isolines are shown (if 'iso_n' = 1, the value
+#                   of the isoline is 'iso_min')
+#       VECTOR PARAMETERS
+# 'n_glyphs'    :   holds the square root number of displayed glyphs (i.e. if
+#                   'n_glyphs' = 9, the number of displayed glyphs is 81)
+# 'draw_glyphs' :   holds which types of glyphs are shown: hedgehogs(=1), cones (=2)
+#                   arrows (=3), streamlines (=4), streamtubes (=5)
+# 'col_mag'     :   holds whether we show directional or magnitude colorcoding
+# 'vec_scale'   :   holds the value with which the vector magnitude is multiplied
+# 'velocity'    :   holds whether we show the velocity (=True) or the forcefield (=False)
+# 'slinelength' :   holds the number of timesteps for which the streamline is calculated
+# 'displacement':   holds whether the glyphs are shown in a grid, or whether they are
+#                   slightly displaced. (corresponds to option random seeding in GUI)
 
 parameter_dict = {'Field': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_BLACKWHITE,
                         'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'datatype': 0,
@@ -74,7 +97,7 @@ parameter_dict = {'Field': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_
                       'hue': 0,'sat':1.0},
               'Vector': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE,
                          'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'n_glyphs': 16, 'draw_glyphs': 2,
-                         'col_mag': 0, 'vec_scale': 5, 'hue':0,'sat':1.0, 'velocity': True, 'streamlinelength': 5,
+                         'col_mag': 0, 'vec_scale': 5, 'hue':0,'sat':1.0, 'velocity': True, 'slinelength': 5,
                          'displacement': False}}
 
 
@@ -236,8 +259,6 @@ def rgb2hsv(r, g, b):
             h = 4 + (r - g) / df
         h = h % 6
         h = h /6
-        # if h < 0:
-        #     h += 1
 
     return h, s, v
 
@@ -291,11 +312,14 @@ def change_colormap(type):
     global colormap_field
     global colormap_iso
     global colormap_vect
+    # retrieve parameters
     nlevels = parameter_dict[type]['nlevels']
     scale = parameter_dict[type]['scale']
     color_scheme = parameter_dict[type]['color_scheme']
     hue = parameter_dict[type]['hue']
     sat = parameter_dict[type]['sat']
+
+    # create correct colormap
     colormap = np.zeros((nlevels, 3))
     for i in range(0,nlevels):
         if color_scheme == COLOR_BLACKWHITE:
@@ -316,14 +340,16 @@ def change_colormap(type):
         colormap_vect = colormap
 
 
-def makecolormap(colormaptobe):
-    colormap = np.zeros((50, 50, 3))
+
+# creates colors for every vertex from the color map
+def colormaptovalues(valuefield):
+    colorfield = np.zeros((50, 50, 3))
     nlevels = parameter_dict['Field']['nlevels']
     clamp_min = parameter_dict['Field']['clamp_min']
     clamp_max = parameter_dict['Field']['clamp_max']
     for i in range(0, DIM):
         for j in range(0, DIM):
-            val = colormaptobe[i,j]
+            val = valuefield[i,j]
             if val < clamp_min:
                 val = clamp_min
             elif val > clamp_max:
@@ -331,95 +357,95 @@ def makecolormap(colormaptobe):
             val = (val-clamp_min)/(clamp_max-clamp_min) * (nlevels-1)
             val = int(round(val))
 
-            colormap[i, j, :] = colormap_field[val,:]
-            # print(colormap[i,j,:])
+            colorfield[i, j, :] = colormap_field[val,:]
+
     c = []
     for x in range(0, DIM - 1):
         for y in range(0, DIM - 1):
-            c += [colormap[x, y, 0], colormap[x, y, 1], colormap[x, y, 2]]
-            c += [colormap[x, y + 1, 0], colormap[x, y + 1, 1], colormap[x, y + 1, 2]]
-            c += [colormap[x + 1, y + 1, 0], colormap[x + 1, y + 1, 1], colormap[x + 1, y + 1, 2]]
-            c += [colormap[x, y, 0], colormap[x, y, 1], colormap[x, y, 2]]
-            c += [colormap[x + 1, y + 1, 0], colormap[x + 1, y + 1, 1], colormap[x + 1, y + 1, 2]]
-            c += [colormap[x + 1, y, 0], colormap[x + 1, y, 1], colormap[x + 1, y, 2]]
+            c += [colorfield[x, y, 0], colorfield[x, y, 1], colorfield[x, y, 2]]
+            c += [colorfield[x, y + 1, 0], colorfield[x, y + 1, 1], colorfield[x, y + 1, 2]]
+            c += [colorfield[x + 1, y + 1, 0], colorfield[x + 1, y + 1, 1], colorfield[x + 1, y + 1, 2]]
+            c += [colorfield[x, y, 0], colorfield[x, y, 1], colorfield[x, y, 2]]
+            c += [colorfield[x + 1, y + 1, 0], colorfield[x + 1, y + 1, 1], colorfield[x + 1, y + 1, 2]]
+            c += [colorfield[x + 1, y, 0], colorfield[x + 1, y, 1], colorfield[x + 1, y, 2]]
     return c
 
-
+# make sure that black is printed when field is not shown
 def blackcolors():
     return [0] * 43218
 
 
-### Determine the representation of the colors
+# show the colors, based on which information we want to show
 def vis_color():
-    colormaptobe = np.zeros((50, 50))
+    valuefield = np.zeros((50, 50))
     colormap_type = parameter_dict['Field']['datatype']
     # Density
     if colormap_type == 0:
-        colormaptobe = sim.field[-1, :, :]
+        valuefield = sim.field[-1, :, :]
 
     # Direction and Magnitude
     elif colormap_type == 1:
-        colormaptobe = scale_velo_map * np.sqrt(
+        valuefield = scale_velo_map * np.sqrt(
             sim.field[0, :, :] * sim.field[0, :, :] + sim.field[1, :, :] * sim.field[1, :, :])
 
     # Forces
     elif colormap_type == 2:
-        colormaptobe = np.sqrt(sim.forces[0, :, :] * sim.forces[0, :, :] + sim.forces[1, :, :] * sim.forces[1, :, :])
+        valuefield = np.sqrt(sim.forces[0, :, :] * sim.forces[0, :, :] + sim.forces[1, :, :] * sim.forces[1, :, :])
 
     # Divergence velocity
     elif colormap_type == 3:
 
-        colormaptobe = 50 * sim.divfield[:, :] + 0.5
+        valuefield = 50 * sim.divfield[:, :] + 0.5
 
     # Divergence forces
     elif colormap_type == 4:
-        colormaptobe = 50 * sim.divforces[:, :] + 0.5
+        valuefield = 50 * sim.divforces[:, :] + 0.5
 
     global colors
-    colors = makecolormap(colormaptobe)
+    colors = colormaptovalues(valuefield)
 
 
-# returns the vertices needed for printing the colormap
+# returns the vertices needed for printing the color field
 def makevertices():
     threedim = parameter_dict['Field']['3d']
     hf = parameter_dict['Field']['heightfactor']
     hs = parameter_dict['Field']['heightscale']
     datatype = parameter_dict['Field']['datatype']
+
+# get the values for printing the height plot
     if datatype == 0:
         vectfield = sim.field[-1,:,:]
     elif datatype == 1:
-        vectfield = np.sqrt(sim.field[0, :, :] * sim.field[0, :, :] + sim.field[1, :, :] * sim.field[1, :, :])
+        vectfield = 500* np.sqrt(sim.field[0, :, :] * sim.field[0, :, :] + sim.field[1, :, :] * sim.field[1, :, :])
     elif datatype == 2:
-        vectfield = np.sqrt(sim.forces[0, :, :] * sim.forces[0, :, :] + sim.forces[1, :, :] * sim.forces[1, :, :])
+        vectfield = 50 * np.sqrt(sim.forces[0, :, :] * sim.forces[0, :, :] + sim.forces[1, :, :] * sim.forces[1, :, :])
     elif datatype == 3:
-        vectfield = 50 * sim.divfield[:, :]
+        vectfield = 500 * sim.divfield[:, :]
     elif datatype == 4:
-        vectfield = 50 * sim.divforces[:, :]
+        vectfield = 500 * sim.divforces[:, :]
 
+# create the vertices, with z for the heights
     v = []
     for i in range(49):
         for j in range(49):
             if threedim:
                 z =  [vectfield[i,j],vectfield[i,j+1],vectfield[i+1,j+1],vectfield[i+1,j]]
                 for k in range(4):
-                    if abs(z[k]*hf) < 0.01:
-                        z[k] = 0.01/hf
+                    if z[k] < 0:
+                        z[k] = -1*((-1*hf*z[k])**hs)
+                    else:
+                        z[k] = (hf*z[k])**hs
             else:
                 z = [-1,-1,-1,-1]
-            zzz = hf * z[0]
-            zz = zzz**hs
-            # print(str(zzz) + '\t' + str(hs))
-            p0 = [ i / (49 / 2) - 1,j / (49 / 1.8) - 0.8, zz]
-            p1 = [i / (49 / 2) - 1, (j + 1) / (49 / 1.8) - 0.8, (hf*z[1])**hs]
-            p2 = [(i + 1) / (49 / 2) - 1, (j + 1) / (49 / 1.8) - 0.8, (hf*z[2])**hs]
-            p3 = [(i + 1) / (49 / 2) - 1, j / (49 / 1.8) - 0.8,(hf* z[3])**hs]
+            p0 = [ i / (49 / 2) - 1,j / (49 / 1.8) - 0.8, z[0]]
+            p1 = [i / (49 / 2) - 1, (j + 1) / (49 / 1.8) - 0.8, z[1]]
+            p2 = [(i + 1) / (49 / 2) - 1, (j + 1) / (49 / 1.8) - 0.8, z[2]]
+            p3 = [(i + 1) / (49 / 2) - 1, j / (49 / 1.8) - 0.8,z[3]]
             v += p0 + p1 + p2 + p0 + p2 + p3
-    v = np.array(v)
-    # v = v / (49 / 2) - 1
-    v = v.tolist()
     return v
 
 
+# draw text for the legend numbers
 def drawText(input, num, rightalign=False):
     font = pygame.font.Font (None, 24)
     textSurface = font.render(str(input), True, (255,255,255,255), (0,0,0,255))
@@ -436,6 +462,7 @@ def drawText(input, num, rightalign=False):
     glDrawPixels(textSurface.get_width(), textSurface.get_height(), GL_RGBA, GL_UNSIGNED_BYTE, textData)
 
 
+# create vertices for legend
 def makelegend():
     vertices_leg = []
     colors_leg = []
@@ -474,7 +501,7 @@ def makelegend():
     vertices_leg = np.array(vertices_leg)
     vertices_leg = vertices_leg.tolist()
 
-    # colors_leg = np.array(colors_leg)
+#  show the legends
 
     leg_vbo = glGenBuffers(1)
     colleg_vbo = glGenBuffers(1)
@@ -490,6 +517,7 @@ def makelegend():
     glColorPointer(3, GL_FLOAT, 0, None)
     glDrawArrays(GL_TRIANGLES, 0, 6*length)
 
+# include text
     drawText(parameter_dict['Field']['clamp_min'],2)
     drawText(parameter_dict['Vector']['clamp_min'],1)
     drawText(parameter_dict['Iso']['clamp_min'],0)
@@ -498,9 +526,7 @@ def makelegend():
     drawText(parameter_dict['Iso']['clamp_max'],0, rightalign=True)
 
 ########## VECTOR COLORING
-# direction_to_color: Set the current color by mapping a direction vector (x,y), using
-#                    the color mapping method 'method'. If method==1, map the vector direction
-#                    using a rainbow colormap. If method==0, simply use the white color
+# direction_to_color: Set the current color by mapping a direction vector (x,y)
 def direction_to_color(x, y):
     RGB = np.ones(3)
     f = math.atan2(y, x) / 3.1415927 + 1
@@ -522,13 +548,12 @@ def direction_to_color(x, y):
     return RGB
 
 
-# returns color depending on magnitude of vector. Depending on colormaptype the type
-#       of coloring is decided (0->white, 1->rainbow, 2-> twotone)
-def magnitude_to_color(x, y, colormaptype):
+# returns color depending on magnitude of vector.
+def magnitude_to_color(x, y):
     RGB = np.ones(3)
     mag = np.sqrt(x * x + y * y)
 
-    mag = scaling_factor_mag * mag
+    mag = 20 * mag
     clamp_min = parameter_dict['Vector']['clamp_min']
     clamp_max = parameter_dict['Vector']['clamp_max']
     nlevels = parameter_dict['Vector']['nlevels']
@@ -537,13 +562,6 @@ def magnitude_to_color(x, y, colormaptype):
     if mag < clamp_min:
         mag = clamp_min
     RGB = colormap_vect[int(round(mag/(clamp_max-clamp_min)*(nlevels-1)))]
-    # if colormaptype == 0:
-    #     RGB = [mag, mag, mag]
-    # elif colormaptype == 1:
-    #     RGB = rainbow(mag)
-    # elif colormaptype == 2:
-    #     RGB = twotone(mag)
-
     return RGB
 
 
@@ -556,20 +574,21 @@ def drawGlyph(x, y, vx, vy, size, color, max_length):
     vy = np.maximum(vy, -float(max_length / DIM))
 
     glBegin(GL_TRIANGLES)
-    glColor3f(color[0]*0.7, color[1]*0.7, color[2]*0.7)
 
-    glNormal3f(0.5, -0.5, 0.5)
+    # phaux shading implemented with darker (*0.7, *0.4) and lighter corners (*1.2)
+    glColor3f(color[0]*0.7, color[1]*0.7, color[2]*0.7)
 
     glVertex3f(x + vx, y + vy, 0.05)
     glVertex3f(x - 10 / DIM * vy, y + 10 / DIM * vx,0.05)
+
     glColor3f(color[0]*1.2, color[1]*1.2, color[2]*1.2)
     glVertex3f(x, y,0.06)
 
-    glNormal3f(0.5, 0.5, 0.5)
 
     glColor3f(color[0]*0.4, color[1]*0.4, color[2]*0.4)
     glVertex3f(x + vx, y + vy, 0.05)
     glVertex3f(x + 10 / DIM * vy, y - 10 / DIM * vx,0.05)
+
     glColor3f(color[0], color[1], color[2])
     glVertex3f(x, y,0.06)
     glEnd()
@@ -590,7 +609,7 @@ def drawArrow(x, y, vx, vy, size, color, max_length):
     glVertex2f(x, y)
     glEnd()
     glBegin(GL_TRIANGLES)
-
+# phaux shading implemented with darker (*0.7, *0.4) and lighter corners (*1.2)
     glColor3f(color[0]*0.7, color[1]*0.7, color[2]*0.7)
     glVertex3f(x + vx, y + vy,0)
     glVertex3f((x + 0.5 * vx) - 2 * (size / DIM) * vy, (y + 0.5 * vy) + 2 * (size / DIM) * vx,0)
@@ -605,20 +624,13 @@ def drawArrow(x, y, vx, vy, size, color, max_length):
 
 
 ##### USER INPUT
-def placeSinkHole(mx, my):
-    xi = simulation.clamp((DIM + 1) * (mx / winWidth))
-    yi = simulation.clamp((DIM + 1) * ((winHeight - my) / winHeight))
-    X = int(xi)
-    Y = int(yi)
 
-    sim.sinkholes += [[X, Y]]
 
 # gets the drag movement of the mouse and changes the simulation values
 #       according to these movements
 def drag(mx, my):
     my = my
-    # lmx = 0
-    # lmy = 0
+    # lmx holds the last recorded mouse position
     try:
         lmx = drag.lmx
         lmy = drag.lmy
@@ -633,7 +645,7 @@ def drag(mx, my):
     yi = simulation.clamp((DIM + 1) * ((winHeight - my) / winHeight))
     X = int(xi)
     Y = int(yi)
-
+# clamp the values
     if X > (DIM - 1):
         X = DIM - 1
     if Y > (DIM - 1):
@@ -656,6 +668,9 @@ def drag(mx, my):
     drag.lmy = my
 
 
+# change the displacement array. This array remembers the displacement of the
+# vectors (both in x and y direction). If we don't want random seeding, the
+# displacement array holds only zeros.
 def displace():
     global displacement
     if parameter_dict['Vector']['displacement']:
@@ -666,16 +681,11 @@ def displace():
     else:
         displacement = np.zeros((2,50,50))
 
+# perform action that was retrieved from GUI
 def performAction(message):
     global parameter_dict
-    global color_mag_v
-    global clamp_color
-    global scalar_col
     global frozen
-    global hue
-    global NLEVELS
-    global level
-    global scale
+
 
     a = message.split(':')
     action = a[0]
@@ -686,13 +696,10 @@ def performAction(message):
         sim.dt += 0.001
     elif action == Action.SET_DT.name:
         sim.dt = float(a[1])
-    elif action == Action.COLOR_MAG_CHANGE.name:
-        color_mag_v += 1
-        if color_mag_v > 2:
-            color_mag_v = 0
+
     elif action == Action.MAG_DIR.name:
         parameter_dict['Vector']['col_mag'] += 1
-        if parameter_dict['Vector']['col_mag'] > 2:
+        if parameter_dict['Vector']['col_mag'] > 3:
             parameter_dict['Vector']['col_mag'] = 0
     elif action == Action.VEC_SCALE_UP.name:
         parameter_dict['Vector']['vec_scale'] *= 1.2
@@ -704,7 +711,7 @@ def performAction(message):
         sim.visc *= 0.2
     elif action == Action.COLOR_DIR.name:
         parameter_dict['Vector']['col_mag'] = parameter_dict['Vector']['col_mag'] + 1
-        if parameter_dict['Vector']['col_mag'] > 2:
+        if parameter_dict['Vector']['col_mag'] > 3:
             parameter_dict['Vector']['col_mag'] = 0
         change_colormap('Vector')
     elif action == Action.DRAW_SMOKE.name:
@@ -716,7 +723,7 @@ def performAction(message):
     elif action == Action.GLYPH_CHANGE.name:
         parameter_dict['Vector']['draw_glyphs'] += 1
         if parameter_dict['Vector']['draw_glyphs'] > 5:
-            parameter_dict['Vector']['draw_glyphs'] = 0
+            parameter_dict['Vector']['draw_glyphs'] = 1
     elif action == Action.SCALAR_COLOR_CHANGE.name:
         parameter_dict['Field']['color_scheme'] += 1
         if parameter_dict['Field']['color_scheme'] > COLOR_TWOTONE:
@@ -745,23 +752,6 @@ def performAction(message):
             parameter_dict['Field']['datatype'] = 0
     elif action == Action.FREEZE.name:
         frozen = not frozen
-    elif action == Action.CLAMP_COLOR_MIN_UP.name:
-        clamp_color[0] = min(clamp_color[0] + 0.1, clamp_color[1] - 0.1)
-    elif action == Action.CLAMP_COLOR_MAX_DOWN.name:
-        clamp_color[0] = max(clamp_color[0] - 0.1, 0)
-    elif action == Action.CLAMP_COLOR_MAX_UP.name:
-        clamp_color[1] = max(clamp_color[1] + 0.1, 1)
-    elif action == Action.CLAMP_COLOR_MAX_DOWN.name:
-        clamp_color[1] = min(clamp_color[1] - 0.1, clamp_color[0] + 0.1)
-    elif action == Action.CHANGE_HUE.name:
-        hue += 1 / 6
-        if hue >= 1.0:
-            hue = 0
-    elif action == Action.CHANGE_LEVELS.name:
-        level += 1
-        if level > 3:
-            level = 0
-        NLEVELS = levels[level]
     elif action == Action.SET_NLEVELS_FIELD.name:
         parameter_dict['Field']['nlevels'] = int(a[1])
         change_colormap('Field')
@@ -843,7 +833,7 @@ def performAction(message):
         parameter_dict['Vector']['clamp_max'] = float(a[1])
         change_colormap('Vector')
     elif action == Action.SET_STREAMLINE_LENGTH.name:
-        parameter_dict['Vector']['streamlinelength'] = int(a[1])
+        parameter_dict['Vector']['slinelength'] = int(a[1])
     elif action == Action.CHANGE_HUE_FIELD.name:
         parameter_dict['Field']['hue'] = float(a[1])
         change_colormap('Field')
@@ -867,65 +857,19 @@ def performAction(message):
     elif action == Action.DISPLACE.name:
         parameter_dict['Vector']['displacement'] = not parameter_dict['Vector']['displacement']
         displace()
-    elif action == Action.QUIT.name:
-        global keep_connection
-        keep_connection = False
-        time.sleep(2)
-        sys.exit()
 
 
-# function that gets the keyboard input, which is used for controlling the parameters
+
+# function that gets the keyboard input, which is used for controlling parameters
 #       of the simulation.
 def keyboard(key):
     global q
-    if key == pygame.K_t:
-        q.put(Action.DT_DOWN.name)
-    elif key == pygame.K_y:
-        q.put(Action.DT_UP.name)
-
-    elif key == pygame.K_v:
-        q.put(Action.COLOR_MAG_CHANGE.name)
-    elif key == pygame.K_m:
-        q.put(Action.MAG_DIR.name)
-    elif key == pygame.K_a:
-        q.put(Action.VEC_SCALE_UP.name)
-    elif key == pygame.K_s:
-        q.put(Action.VEC_SCALE_DOWN.name)
-    elif key == pygame.K_z:
-        q.put(Action.VISC_UP.name)
-    elif key == pygame.K_x:
-        q.put(Action.VISC_DOWN.name)
-    elif key == pygame.K_n:
-        q.put(Action.DRAW_SMOKE.name)
-    elif key == pygame.K_u:
-        q.put(Action.GLYPH_CHANGE.name)
-    elif key == pygame.K_i:
-        q.put(Action.SCALAR_COLOR_CHANGE.name)
-    elif key == pygame.K_j:
-        q.put(Action.COLORMAP_CHANGE.name)
-    elif key == pygame.K_f:
+    if key == pygame.K_f:
         q.put(Action.FREEZE.name)
-    elif key == pygame.K_1:
-        q.put(Action.CLAMP_COLOR_MIN_UP.name)
-    elif key == pygame.K_2:
-        q.put(Action.CLAMP_COLOR_MIN_DOWN.name)
-    elif key == pygame.K_3:
-        q.put(Action.CLAMP_COLOR_MAX_UP.name)
-    elif key == pygame.K_4:
-        q.put(Action.CLAMP_COLOR_MAX_DOWN.name)
-    elif key == pygame.K_h:
-        q.put(Action.CHANGE_HUE.name)
-    elif key == pygame.K_l:
-        q.put(Action.CHANGE_LEVELS.name)
-    elif key == pygame.K_g:
-        q.put(Action.GLYPH_CHANGE_N.name)
-    elif key == pygame.K_7:
-        q.put(Action.CHANGE_ISO_COL.name)
-    elif key == pygame.K_q:
-        q.put(Action.QUIT.name)
 
 
 
+# retrieve information from the GUI
 def getGuiInput():
     global q
     global keep_connection
@@ -938,7 +882,7 @@ def getGuiInput():
             print(buf.decode('utf_8'))
         connection.close()
 
-
+# interpolate velocity for streamlines and streamtubes.
 def interpolateVelocity(x, y, vectfield):
     x_floor = int(np.floor(x))
     x_ceil  = int(np.ceil(x))
@@ -948,8 +892,7 @@ def interpolateVelocity(x, y, vectfield):
     x = x-x_floor
     y = y-y_floor
 
-    #print("xf: {}, xc: {}, yf: {}, yc: {}".format(x_floor, x_ceil, y_floor, y_ceil))
-
+# velocity at point x,y in direction x (=vx) and direction y (=vy)
     vx = vectfield[0, x_floor, y_floor] * (1 - x) * (1 - y) + \
          vectfield[0, x_ceil,  y_floor] * x       * (1 - y) + \
          vectfield[0, x_floor, y_ceil ] * (1 - x) * y       + \
@@ -967,36 +910,25 @@ def main():
     print("Fluid Flow Simulation and Visualization\n")
     print("=======================================\n")
     print("Click and drag the mouse to steer the flow!\n")
-    print("T/t:   increase/decrease simulation timestep\n")
-    print("S/s:   increase/decrease hedgehog scaling\n")
-    print("c:     toggle direction coloring on/off\n")
-    print("C:     toggle magnitude velocity coloring on/off\n")
-    print("z:     velocity coloring based on direction/magnitude\n")
-    print("V/v:   increase decrease fluid viscosity\n")
-    print("x:     toggle drawing matter on/off\n")
-    print("y:     toggle drawing hedgehogs on/off\n")
-    print("m:     toggle thru scalar coloring\n")
-    print("n:     toggle thru what is displayed on the colormap (density, velocity, force)\n")
-    print("a:     toggle the animation on/off\n")
-    print("l:     change number of colors in colormap (256**3, 20, 10, 5) \n ")
-    print("h:     change hue \n")
+    print("f:   freeze the screen\n")
 
-    print("q:     quit\n\n")
 
     clock = pygame.time.Clock()
 
     thread = Thread(target=getGuiInput)
     thread.start()
 
+# initialize colormaps
     change_colormap('Field')
     change_colormap('Iso')
     change_colormap('Vector')
 
-
+# initialize the vertices to print
     vertices = makevertices()
     global colors
-    colors = makecolormap(sim.field[-1, :, :])
+    colors = colormaptovalues(sim.field[-1, :, :])
 
+# make a buffer for the vertices and colors
     vertices_vbo = glGenBuffers(1)
     glBindBuffer(GL_ARRAY_BUFFER, vertices_vbo)
     glBufferData(GL_ARRAY_BUFFER, len(vertices) * 4, (c_float * len(vertices))(*vertices), GL_STATIC_DRAW)
@@ -1006,14 +938,9 @@ def main():
     glBufferData(GL_ARRAY_BUFFER, len(colors) * 4, (c_float * len(colors))(*colors), GL_STATIC_DRAW)
 
 
-    # glColor3f(1,1,1)
-
     running = True
     while running:
 
-
-
-        # clock.tick(60)
         global dragbool
         global keep_connection
         if not keep_connection:
@@ -1026,33 +953,32 @@ def main():
                     dragbool = True
                 elif event.button == 3:
                     mx, my = event.pos
-                    #placeSinkHole(mx, my)
 
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:
                     dragbool = False
             if event.type == pygame.KEYDOWN:
                 keyboard(event.key)
+        # if the mouse button is pressed down, influence the simulation
         if dragbool:
             try:
                 mx, my = event.pos
                 drag(mx, my)
             except AttributeError:
                 pass
-
-
-
-
-
-
-
+        # if there is an element in the queue, perform it
         while not q.empty():
             performAction(q.get())
-            # print(q.get())
-        threedim = parameter_dict['Field']['3d']
+
+# do a simulation step
         sim.do_one_simulation_step(frozen)
+
+
+        threedim = parameter_dict['Field']['3d']
+# change the vertices in z direction if a heightplot is asked
         if threedim:
             vertices = makevertices()
+# change colors
         vis_color()
 
         glBindBuffer(GL_ARRAY_BUFFER, vertices_vbo)
@@ -1073,7 +999,7 @@ def main():
 
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
-
+# change perspective if we look in 3d
         if threedim:
             gluPerspective(90, 1, 0.1, 10)
             gluLookAt(0,-1.5, 0.4,0, 0, 0, 0, -0.5, 0.7)
@@ -1082,42 +1008,60 @@ def main():
             gluLookAt(0,0, 1,0, 0, 0, 0, 1, 0)
             glDepthFunc(GL_ALWAYS)
         glClearColor(0.0, 0.0, 0.0, 1.0)
-
+# retrieve parameters from dict
         draw_glyphs = parameter_dict['Vector']['draw_glyphs']
         n_glyphs = parameter_dict['Vector']['n_glyphs']
         vec_scale = parameter_dict['Vector']['vec_scale']
         show_vecs = parameter_dict['Vector']['show']
         global displacement
-        if show_vecs:
 
+# show vectors
+        if show_vecs:
+# retrieve vector field to show
             if parameter_dict['Vector']['velocity']:
                 vectfield = sim.field[0:2,:,:]
             else:
                 vectfield = sim.forces
 
+# create list with all the vectors before we print
             glNewList(1, GL_COMPILE)
             step = DIM / n_glyphs
             for i in range(0, n_glyphs):
                 for j in range(0, n_glyphs):
+                    # print hedgehogs
                     if draw_glyphs == 1 :
                         glBegin(GL_LINES)
                         x = round(i * step)
                         y = round(j * step)
                         color = np.ones(3)
+                        # which data to encode in the vector color
                         if parameter_dict['Vector']['col_mag']==1:
-                            color = magnitude_to_color(vectfield[0, x, y], vectfield[1, x, y], color_mag_v)
+                            color = magnitude_to_color(vectfield[0, x, y], vectfield[1, x, y])
                         elif parameter_dict['Vector']['col_mag']==2:
                             color = direction_to_color(vectfield[0, x,y], vectfield[1, x, y])
+                        elif parameter_dict['Vector']['col_mag']==3:
+                            xx = 49 - x
+                            yy = 49 - y
+                            if not (xx+yy) > 96:
+                                color = colors[18*xx + 882*yy : 18*xx + 882*yy + 3]
+                            elif (xx+yy) == 98:
+                                color = colors[18*xx + 882*yy -6: 18*xx + 882*yy -3]
+                            elif xx == 49:
+                                color = colors[18*xx + 882*yy -3 : 18*xx + 882*yy]
+                            else:
+                                color = colors[18*xx + 882*yy +3 : 18*xx + 882*yy +6]
+                        # displace the vectors a bit
                         id = i + displacement[0,i,j]
                         jd = j + displacement[1,i,j]
 
+                        # draw the hedgehogs
                         glColor3f(color[0], color[1], color[2])
 
                         glVertex2f((((id + 0.5) * step / (49 / 2)) - 1), (((jd + 0.5) * step / (49 / 1.8)) - 0.8))
                         glVertex2f((((id + 0.5) * step / (49 / 2)) - 1) + vec_scale * vectfield[0, x, y],
                                    (((jd + 0.5) * step / (49 / 1.8)) - 0.8) + vec_scale * vectfield[1, x, y])
                         glEnd()
-
+# other vector types, similar to hedgehogs
                     if draw_glyphs >= 2:
 
                         x = i * step
@@ -1128,25 +1072,39 @@ def main():
                         vy = step * vectfield[1, round(x), round(y)]
                         x2 = (id + 0.5) * step / ((DIM - 1) / 2) - 1
                         y2 = (jd + 0.5) * step / ((DIM - 1) / 1.8) - 0.8
-
+                        x = round(x)
+                        y = round(y)
                         color = np.ones(3)
                         if parameter_dict['Vector']['col_mag'] == 1:
-                            color = magnitude_to_color(vectfield[0, round(x), round(y)], vectfield[1, round(x), round(y)],
-                                                       color_mag_v)
+                            color = magnitude_to_color(vectfield[0, round(x), round(y)], vectfield[1, round(x), round(y)])
                         elif parameter_dict['Vector']['col_mag'] == 2:
                             color = direction_to_color(vectfield[0, round(x), round(y)], vectfield[1, round(x), round(y)])
+                        elif parameter_dict['Vector']['col_mag']==3:
+                            xx = y
+                            yy = x
+                            if yy < 49 & xx < 49:
+                                color = colors[18*xx + 882*yy : 18*xx + 882*yy + 3]
 
+                            elif (xx+yy) == 98:
+
+                                color = colors[18*(xx-1) + 882*(yy-1) -6: 18*(xx-1) + 882*(yy-1) -3]
+                            elif xx == 49:
+                                color = colors[18*(xx-1) + 882*(yy-1) -3 : 18*(xx-1) + 882*(yy-1)]
+                            else:
+                                color = colors[18*(xx-1) + 882*(yy-1) +3 : 18*(xx-1) + 882*(yy-1) +6]
                         size = sim.field[-1, round(x), round(y)]
+                        # draw either glyphs or arrows
                         if draw_glyphs == 2:
                             drawGlyph(x2, y2, vx, vy, size, color, step)
                         elif draw_glyphs == 3:
                             drawArrow(x2, y2, vx, vy, size, color, step)
-
+                        # draw streamlines
                         elif draw_glyphs == 4:
                             glBegin(GL_LINES)
-                            T = parameter_dict['Vector']['streamlinelength']
+                            T = parameter_dict['Vector']['slinelength']
                             x_d = x2
                             y_d = y2
+                            # draw T times a part of the streamline
                             for t in range(T):
                                 if x > 49 or y > 49 or x < 0 or y < 0:
                                     break
@@ -1161,9 +1119,22 @@ def main():
                                 y_t = y + vy / (v_l)
                                 color = np.ones(3)
                                 if parameter_dict['Vector']['col_mag'] == 1:
-                                    color = magnitude_to_color(vx, vy, color_mag_v)
+                                    color = magnitude_to_color(vx, vy)
                                 elif parameter_dict['Vector']['col_mag'] == 2:
                                     color = direction_to_color(vx, vy)
+                                elif parameter_dict['Vector']['col_mag']==3:
+                                    xx = y
+                                    yy = x
+                                    if yy < 49 & xx < 49:
+                                        color = colors[18*xx + 882*yy : 18*xx + 882*yy + 3]
+
+                                    elif (xx+yy) == 98:
+
+                                        color = colors[18*(xx-1) + 882*(yy-1) -6: 18*(xx-1) + 882*(yy-1) -3]
+                                    elif xx == 49:
+                                        color = colors[18*(xx-1) + 882*(yy-1) -3 : 18*(xx-1) + 882*(yy-1)]
+                                    else:
+                                        color = colors[18*(xx-1) + 882*(yy-1) +3 : 18*(xx-1) + 882*(yy-1) +6]
                                 glColor3f(color[0], color[1], color[2])
 
                                 glVertex2f(x_d, y_d)
@@ -1174,8 +1145,9 @@ def main():
                                 y = y_t
                             glEnd()
                         else:
+                    # draw stream tubes
                             glBegin(GL_TRIANGLES)
-                            T = parameter_dict['Vector']['streamlinelength']
+                            T = parameter_dict['Vector']['slinelength']
                             x_d = x2
                             y_d = y2
                             #bottom_lx, bottom_ly, bottom_rx, bottom_ry
@@ -1192,9 +1164,22 @@ def main():
                                 y_t = y + vy / (v_l)
                                 color = np.ones(3)
                                 if parameter_dict['Vector']['col_mag'] == 1:
-                                    color = magnitude_to_color(vx, vy, color_mag_v)
+                                    color = magnitude_to_color(vx, vy)
                                 elif parameter_dict['Vector']['col_mag'] == 2:
                                     color = direction_to_color(vx, vy)
+                                elif parameter_dict['Vector']['col_mag']==3:
+                                    xx = y
+                                    yy = x
+                                    if yy < 49 & xx < 49:
+                                        color = colors[18*xx + 882*yy : 18*xx + 882*yy + 3]
+
+                                    elif (xx+yy) == 98:
+
+                                        color = colors[18*(xx-1) + 882*(yy-1) -6: 18*(xx-1) + 882*(yy-1) -3]
+                                    elif xx == 49:
+                                        color = colors[18*(xx-1) + 882*(yy-1) -3 : 18*(xx-1) + 882*(yy-1)]
+                                    else:
+                                        color = colors[18*(xx-1) + 882*(yy-1) +3 : 18*(xx-1) + 882*(yy-1) +6]
 
                                 size = 70 - 70*t/T
                                 lx = x_d - (size / DIM) * vy/(v_l * 49)
@@ -1237,16 +1222,18 @@ def main():
                                     break
                             glEnd()
             glEndList()
-
+# show isolines if necessary
         if parameter_dict['Iso']['show']:
             isolines()
+# draw vectors from list if necessary
         if show_vecs:
             glCallList(1)
+# refresh legend
         makelegend()
         pygame.display.flip()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
 
-
+# initialize visualization
 pygame.init()
 pygame.font.init()
 
@@ -1255,11 +1242,5 @@ screen = pygame.display.set_mode((winWidth, winHeight + 55), pygame.OPENGL | pyg
 glEnable(GL_DEPTH_TEST)
 glEnable(GL_BLEND);
 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-# glShadeModel(GL_FLAT)
-# glEnable(GL_LIGHTING)
-# glEnable(GL_LIGHT0)
-# glViewport(0, 0, winWidth, winHeight + 55)
-# glClearColor(0.0, 0.5, 0.5, 1.0)
 glEnableClientState(GL_VERTEX_ARRAY)
-# glEnableClientState(GL_COLOR_ARRAY)
 main()
