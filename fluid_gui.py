@@ -306,7 +306,6 @@ isoColDropdown.pack()
 F3d.pack()
 
 while True:
-    global velo
     fieldClaMinSlider.configure(to = fieldClaMaxSlider.get()-0.01)
     fieldClaMaxSlider.configure(from_ = fieldClaMinSlider.get()+0.01)
     vectClaMinSlider.configure(to = vectClaMaxSlider.get()-0.01)
