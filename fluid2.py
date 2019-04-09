@@ -34,18 +34,12 @@ q = queue.Queue(maxsize=20)
 frozen = False
 winWidth = 500
 winHeight = 500
-color_mag_v = 0
+
 
 scale_velo_map = 5
-NLEVELS = 256 ^ 3
-levels = [256 ^ 3, 20, 10, 5]
-level = 0
-hue = 0.0
-sat = 1.0
+
 dragbool = False
 
-scaling_factor_mag = 2
-clamp_factor_mag = 0.02
 
 colors = []
 
@@ -58,7 +52,7 @@ COLOR_BLACKWHITE = 0
 COLOR_RAINBOW = 1
 COLOR_TWOTONE = 2
 COLOR_WHITE = 3
-scalar_col = 0
+# scalar_col = 0
 
 
 
@@ -72,7 +66,7 @@ scalar_col = 0
 # n_isolines
 
 
-color_dict = {'Field': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_BLACKWHITE,
+parameter_dict = {'Field': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_BLACKWHITE,
                         'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'datatype': 0,
                         '3d': False, 'heightscale': 1.0, 'heightfactor': 0.05, 'hue':0,'sat':1.0},
               'Iso': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE,
@@ -95,18 +89,21 @@ displacement = np.zeros((2,50,50))
 ### Visualization
 
 def isolines():
-    nlevels = color_dict['Iso']['nlevels']
-    clamp_min = color_dict['Iso']['clamp_min']
-    clamp_max = color_dict['Iso']['clamp_max']
-    max = color_dict['Iso']['iso_max']
-    min = color_dict['Iso']['iso_min']
-    n = color_dict['Iso']['iso_n']
-    hf = color_dict['Field']['heightfactor']
-    hs = color_dict['Field']['heightscale']
+    # load in variables
+    nlevels = parameter_dict['Iso']['nlevels']
+    clamp_min = parameter_dict['Iso']['clamp_min']
+    clamp_max = parameter_dict['Iso']['clamp_max']
+    max = parameter_dict['Iso']['iso_max']
+    min = parameter_dict['Iso']['iso_min']
+    n = parameter_dict['Iso']['iso_n']
+    hf = parameter_dict['Field']['heightfactor']
+    hs = parameter_dict['Field']['heightscale']
+    # make sure the max of the iso lines is higher than the min
     if max < min:
         return
     if max == min:
         n = 1
+    # create values for the isolines
     vallist = []
     if n == 1:
         vallist = [min]
@@ -114,6 +111,7 @@ def isolines():
         for i in range(0, n):
             vallist += [min + i * (max - min) / (n - 1)]
 
+    # draw isolines using marching squares
     glBegin(GL_LINES)
     for val in vallist:
         threshold_image = sim.field[-1, :, :] > val
@@ -179,6 +177,7 @@ def isolines():
                     x22 = i
                     y22 = j + (sim.field[-1, i, j] - val) / (sim.field[-1, i, j] - sim.field[-1, i, j + 1])
 
+                # draw the isolines
                 if not int(bincode, 2) == 0 or int(bincode, 2) == 15:
                     glColor3f(cv[0], cv[1], cv[2])
                     glVertex3f((x1 / (49 / 2)) - 1, (y1 / (49 / 1.8)) - 0.8, (hf * val * 1.3)**hs)
@@ -242,22 +241,15 @@ def rgb2hsv(r, g, b):
 
     return h, s, v
 
-
-
-
+# return color for black and white color map
 def bw(cv,scale):
     RGB = np.zeros(3)
-    global clamp_color
-    # if cv < clamp_color[0]:
-    #     cv = clamp_color[0]
-    # if cv > clamp_color[1]:
-    #     cv = clamp_color[1]
     cv = cv**scale
     RGB = np.array([cv, cv, cv])
     return RGB
 
 
-# return color from rainbow colormap based on a value
+# return color for rainbow colormap based on a value
 def rainbow(cv,scale,hue,sat):
     dx = 0.8
     cv = cv**scale
@@ -266,45 +258,44 @@ def rainbow(cv,scale,hue,sat):
     G = max(0.0, (4 - np.fabs(cv - 2) - np.fabs(cv - 4)) / 2)
     B = max(0.0, (3 - np.fabs(cv - 1) - np.fabs(cv - 2)) / 2)
 
-
+    # include hue and sat from user
     [h, s, v] = rgb2hsv(R, G, B)
-
     h = (h + (hue/6)) % 1
     R, G, B = hsv2rgb(h, sat, v)
-
     return np.array([R, G, B])
 
 
 # return color from twotone colormap based on a value
 def twotone(cv,scale,hue,sat):
-    c1 = [255 / 256, 255 / 256, 51 / 256]
-    c2 = [0.0, 51 / 256, 255 / 256]
-    global clamp_color
+    c1 = [0.9, 0.9, 0.0]
+    c2 = [0.0, 0.0, 0.9]
 
     value = cv**scale
+# interpolate between colors
+    R = (value * (c1[0] - c2[0]) + c2[0])
+    G = (value * (c1[1] - c2[1]) + c2[1])
+    B = (value * (c1[2] - c2[2]) + c2[2])
 
-
-    R = value * (c1[0] - c2[0]) + c2[0]
-    G = value * (c1[1] - c2[1]) + c2[1]
-    B = value * (c1[2] - c2[2]) + c2[2]
-
+# include hue from user
     [h, s, v] = rgb2hsv(R, G, B)
     h = (h + (hue/6)) % 1
-    R, G, B = hsv2rgb(h, sat, v)
-
+    R, G, B = hsv2rgb(h, s, v)
 
     return np.array([R, G, B])
 
 
+# this function changes the color map when one of the parameters has option_changed
+# type holds either 'Field' 'Vector' or 'Iso', depending on the colormap that
+# should be changed
 def change_colormap(type):
     global colormap_field
     global colormap_iso
     global colormap_vect
-    nlevels = color_dict[type]['nlevels']
-    scale = color_dict[type]['scale']
-    color_scheme = color_dict[type]['color_scheme']
-    hue = color_dict[type]['hue']
-    sat = color_dict[type]['sat']
+    nlevels = parameter_dict[type]['nlevels']
+    scale = parameter_dict[type]['scale']
+    color_scheme = parameter_dict[type]['color_scheme']
+    hue = parameter_dict[type]['hue']
+    sat = parameter_dict[type]['sat']
     colormap = np.zeros((nlevels, 3))
     for i in range(0,nlevels):
         if color_scheme == COLOR_BLACKWHITE:
@@ -316,6 +307,7 @@ def change_colormap(type):
         elif color_scheme == COLOR_WHITE:
             colormap[i,:] = np.ones((1,3))
 
+# assign colormap to correct field
     if type == 'Field':
         colormap_field = colormap
     elif type == 'Iso':
@@ -326,9 +318,9 @@ def change_colormap(type):
 
 def makecolormap(colormaptobe):
     colormap = np.zeros((50, 50, 3))
-    nlevels = color_dict['Field']['nlevels']
-    clamp_min = color_dict['Field']['clamp_min']
-    clamp_max = color_dict['Field']['clamp_max']
+    nlevels = parameter_dict['Field']['nlevels']
+    clamp_min = parameter_dict['Field']['clamp_min']
+    clamp_max = parameter_dict['Field']['clamp_max']
     for i in range(0, DIM):
         for j in range(0, DIM):
             val = colormaptobe[i,j]
@@ -360,7 +352,7 @@ def blackcolors():
 ### Determine the representation of the colors
 def vis_color():
     colormaptobe = np.zeros((50, 50))
-    colormap_type = color_dict['Field']['datatype']
+    colormap_type = parameter_dict['Field']['datatype']
     # Density
     if colormap_type == 0:
         colormaptobe = sim.field[-1, :, :]
@@ -389,17 +381,35 @@ def vis_color():
 
 # returns the vertices needed for printing the colormap
 def makevertices():
-    threedim = color_dict['Field']['3d']
-    hf = color_dict['Field']['heightfactor']
-    hs = color_dict['Field']['heightscale']
+    threedim = parameter_dict['Field']['3d']
+    hf = parameter_dict['Field']['heightfactor']
+    hs = parameter_dict['Field']['heightscale']
+    datatype = parameter_dict['Field']['datatype']
+    if datatype == 0:
+        vectfield = sim.field[-1,:,:]
+    elif datatype == 1:
+        vectfield = np.sqrt(sim.field[0, :, :] * sim.field[0, :, :] + sim.field[1, :, :] * sim.field[1, :, :])
+    elif datatype == 2:
+        vectfield = np.sqrt(sim.forces[0, :, :] * sim.forces[0, :, :] + sim.forces[1, :, :] * sim.forces[1, :, :])
+    elif datatype == 3:
+        vectfield = 50 * sim.divfield[:, :]
+    elif datatype == 4:
+        vectfield = 50 * sim.divforces[:, :]
+
     v = []
     for i in range(49):
         for j in range(49):
             if threedim:
-                z =  [sim.field[-1,i,j],sim.field[-1,i,j+1],sim.field[-1,i+1,j+1],sim.field[-1,i+1,j]]
+                z =  [vectfield[i,j],vectfield[i,j+1],vectfield[i+1,j+1],vectfield[i+1,j]]
+                for k in range(4):
+                    if abs(z[k]*hf) < 0.01:
+                        z[k] = 0.01/hf
             else:
                 z = [-1,-1,-1,-1]
-            p0 = [i / (49 / 2) - 1, j / (49 / 1.8) - 0.8, (hf* z[0])**hs]
+            zzz = hf * z[0]
+            zz = zzz**hs
+            # print(str(zzz) + '\t' + str(hs))
+            p0 = [ i / (49 / 2) - 1,j / (49 / 1.8) - 0.8, zz]
             p1 = [i / (49 / 2) - 1, (j + 1) / (49 / 1.8) - 0.8, (hf*z[1])**hs]
             p2 = [(i + 1) / (49 / 2) - 1, (j + 1) / (49 / 1.8) - 0.8, (hf*z[2])**hs]
             p3 = [(i + 1) / (49 / 2) - 1, j / (49 / 1.8) - 0.8,(hf* z[3])**hs]
@@ -429,9 +439,9 @@ def drawText(input, num, rightalign=False):
 def makelegend():
     vertices_leg = []
     colors_leg = []
-    lengthf = color_dict['Field']['nlevels']
-    lengthv = color_dict['Vector']['nlevels']
-    lengthi = color_dict['Iso']['nlevels']
+    lengthf = parameter_dict['Field']['nlevels']
+    lengthv = parameter_dict['Vector']['nlevels']
+    lengthi = parameter_dict['Iso']['nlevels']
     length = lengthf+lengthv+lengthi
 
     for i in range(lengthf):
@@ -480,12 +490,12 @@ def makelegend():
     glColorPointer(3, GL_FLOAT, 0, None)
     glDrawArrays(GL_TRIANGLES, 0, 6*length)
 
-    drawText(color_dict['Field']['clamp_min'],2)
-    drawText(color_dict['Vector']['clamp_min'],1)
-    drawText(color_dict['Iso']['clamp_min'],0)
-    drawText(color_dict['Field']['clamp_max'],2, rightalign=True)
-    drawText(color_dict['Vector']['clamp_max'],1, rightalign=True)
-    drawText(color_dict['Iso']['clamp_max'],0, rightalign=True)
+    drawText(parameter_dict['Field']['clamp_min'],2)
+    drawText(parameter_dict['Vector']['clamp_min'],1)
+    drawText(parameter_dict['Iso']['clamp_min'],0)
+    drawText(parameter_dict['Field']['clamp_max'],2, rightalign=True)
+    drawText(parameter_dict['Vector']['clamp_max'],1, rightalign=True)
+    drawText(parameter_dict['Iso']['clamp_max'],0, rightalign=True)
 
 ########## VECTOR COLORING
 # direction_to_color: Set the current color by mapping a direction vector (x,y), using
@@ -519,9 +529,9 @@ def magnitude_to_color(x, y, colormaptype):
     mag = np.sqrt(x * x + y * y)
 
     mag = scaling_factor_mag * mag
-    clamp_min = color_dict['Vector']['clamp_min']
-    clamp_max = color_dict['Vector']['clamp_max']
-    nlevels = color_dict['Vector']['nlevels']
+    clamp_min = parameter_dict['Vector']['clamp_min']
+    clamp_max = parameter_dict['Vector']['clamp_max']
+    nlevels = parameter_dict['Vector']['nlevels']
     if mag > clamp_max:
         mag = clamp_max
     if mag < clamp_min:
@@ -648,7 +658,7 @@ def drag(mx, my):
 
 def displace():
     global displacement
-    if color_dict['Vector']['displacement']:
+    if parameter_dict['Vector']['displacement']:
         for i in range(50):
             for j in range(50):
                 displacement[0,i,j] = random.uniform(-0.5,0.5)
@@ -657,7 +667,7 @@ def displace():
         displacement = np.zeros((2,50,50))
 
 def performAction(message):
-    global color_dict
+    global parameter_dict
     global color_mag_v
     global clamp_color
     global scalar_col
@@ -681,58 +691,58 @@ def performAction(message):
         if color_mag_v > 2:
             color_mag_v = 0
     elif action == Action.MAG_DIR.name:
-        color_dict['Vector']['col_mag'] += 1
-        if color_dict['Vector']['col_mag'] > 2:
-            color_dict['Vector']['col_mag'] = 0
+        parameter_dict['Vector']['col_mag'] += 1
+        if parameter_dict['Vector']['col_mag'] > 2:
+            parameter_dict['Vector']['col_mag'] = 0
     elif action == Action.VEC_SCALE_UP.name:
-        color_dict['Vector']['vec_scale'] *= 1.2
+        parameter_dict['Vector']['vec_scale'] *= 1.2
     elif action == Action.VEC_SCALE_DOWN.name:
-        color_dict['Vector']['vec_scale'] *= 0.8
+        parameter_dict['Vector']['vec_scale'] *= 0.8
     elif action == Action.VISC_UP.name:
         sim.visc *= 5
     elif action == Action.VISC_DOWN.name:
         sim.visc *= 0.2
     elif action == Action.COLOR_DIR.name:
-        color_dict['Vector']['col_mag'] = color_dict['Vector']['col_mag'] + 1
-        if color_dict['Vector']['col_mag'] > 2:
-            color_dict['Vector']['col_mag'] = 0
+        parameter_dict['Vector']['col_mag'] = parameter_dict['Vector']['col_mag'] + 1
+        if parameter_dict['Vector']['col_mag'] > 2:
+            parameter_dict['Vector']['col_mag'] = 0
         change_colormap('Vector')
     elif action == Action.DRAW_SMOKE.name:
-        color_dict['Field']['show'] = not color_dict['Field']['show']
+        parameter_dict['Field']['show'] = not parameter_dict['Field']['show']
     elif action == Action.DRAW_VECS.name:
-        color_dict['Vector']['show'] = not color_dict['Vector']['show']
+        parameter_dict['Vector']['show'] = not parameter_dict['Vector']['show']
     elif action == Action.DRAW_ISO.name:
-        color_dict['Iso']['show'] = not color_dict['Iso']['show']
+        parameter_dict['Iso']['show'] = not parameter_dict['Iso']['show']
     elif action == Action.GLYPH_CHANGE.name:
-        color_dict['Vector']['draw_glyphs'] += 1
-        if color_dict['Vector']['draw_glyphs'] > 5:
-            color_dict['Vector']['draw_glyphs'] = 0
+        parameter_dict['Vector']['draw_glyphs'] += 1
+        if parameter_dict['Vector']['draw_glyphs'] > 5:
+            parameter_dict['Vector']['draw_glyphs'] = 0
     elif action == Action.SCALAR_COLOR_CHANGE.name:
-        color_dict['Field']['color_scheme'] += 1
-        if color_dict['Field']['color_scheme'] > COLOR_TWOTONE:
-            color_dict['Field']['color_scheme'] = COLOR_BLACKWHITE
+        parameter_dict['Field']['color_scheme'] += 1
+        if parameter_dict['Field']['color_scheme'] > COLOR_TWOTONE:
+            parameter_dict['Field']['color_scheme'] = COLOR_BLACKWHITE
     elif action == Action.SCALAR_COLOR_TWOTONE.name:
-        color_dict['Field']['color_scheme'] = COLOR_TWOTONE
+        parameter_dict['Field']['color_scheme'] = COLOR_TWOTONE
         change_colormap('Field')
     elif action == Action.SCALAR_COLOR_RAINBOW.name:
-        color_dict['Field']['color_scheme'] = COLOR_RAINBOW
+        parameter_dict['Field']['color_scheme'] = COLOR_RAINBOW
         change_colormap('Field')
     elif action == Action.SCALAR_COLOR_BLACK.name:
-        color_dict['Field']['color_scheme'] = COLOR_BLACKWHITE
+        parameter_dict['Field']['color_scheme'] = COLOR_BLACKWHITE
         change_colormap('Field')
     elif action == Action.COLOR_MAG_BLACK.name:
-        color_dict['Vector']['color_scheme'] = COLOR_BLACKWHITE
+        parameter_dict['Vector']['color_scheme'] = COLOR_BLACKWHITE
         change_colormap('Vector')
     elif action == Action.COLOR_MAG_RAINBOW.name:
-        color_dict['Vector']['color_scheme'] = COLOR_RAINBOW
+        parameter_dict['Vector']['color_scheme'] = COLOR_RAINBOW
         change_colormap('Vector')
     elif action == Action.COLOR_MAG_TWOTONE.name:
-        color_dict['Vector']['color_scheme'] = COLOR_TWOTONE
+        parameter_dict['Vector']['color_scheme'] = COLOR_TWOTONE
         change_colormap('Vector')
     elif action == Action.COLORMAP_CHANGE.name:
-        color_dict['Field']['datatype'] += 1
-        if color_dict['Field']['datatype'] > 4:
-            color_dict['Field']['datatype'] = 0
+        parameter_dict['Field']['datatype'] += 1
+        if parameter_dict['Field']['datatype'] > 4:
+            parameter_dict['Field']['datatype'] = 0
     elif action == Action.FREEZE.name:
         frozen = not frozen
     elif action == Action.CLAMP_COLOR_MIN_UP.name:
@@ -753,109 +763,109 @@ def performAction(message):
             level = 0
         NLEVELS = levels[level]
     elif action == Action.SET_NLEVELS_FIELD.name:
-        color_dict['Field']['nlevels'] = int(a[1])
+        parameter_dict['Field']['nlevels'] = int(a[1])
         change_colormap('Field')
     elif action == Action.SET_NLEVELS_ISO.name:
-        color_dict['Iso']['nlevels'] = int(a[1])
+        parameter_dict['Iso']['nlevels'] = int(a[1])
         change_colormap('Iso')
     elif action == Action.SET_NLEVELS_VECTOR.name:
-        color_dict['Vector']['nlevels'] = int(a[1])
+        parameter_dict['Vector']['nlevels'] = int(a[1])
         change_colormap('Vector')
     elif action == Action.GLYPH_CHANGE_N.name:
-        color_dict['Vector']['n_glyphs'] += 5
-        if color_dict['Vector']['n_glyphs'] > 50:
-            color_dict['Vector']['n_glyphs'] = 5
+        parameter_dict['Vector']['n_glyphs'] += 5
+        if parameter_dict['Vector']['n_glyphs'] > 50:
+            parameter_dict['Vector']['n_glyphs'] = 5
     elif action == Action.SET_SCALE_FIELD.name:
-        color_dict['Field']['scale'] = float(a[1])
+        parameter_dict['Field']['scale'] = float(a[1])
         change_colormap('Field')
     elif action == Action.SET_SCALE_VECTOR.name:
-        color_dict['Vector']['scale'] = float(a[1])
+        parameter_dict['Vector']['scale'] = float(a[1])
         change_colormap('Vector')
     elif action == Action.SET_SCALE_ISO.name:
-        color_dict['Iso']['scale'] = float(a[1])
+        parameter_dict['Iso']['scale'] = float(a[1])
         change_colormap('Iso')
     elif action == Action.CHANGE_ISO_COL.name:
-        color_dict['Iso']['color_scheme'] += 1
-        if color_dict['Iso']['color_scheme'] > 4:
-            color_dict['Iso']['color_scheme'] = 0
+        parameter_dict['Iso']['color_scheme'] += 1
+        if parameter_dict['Iso']['color_scheme'] > 4:
+            parameter_dict['Iso']['color_scheme'] = 0
         change_colormap('Iso')
     elif action == Action.SET_ISO_MIN.name:
-        color_dict['Iso']['iso_min'] = float(a[1])
+        parameter_dict['Iso']['iso_min'] = float(a[1])
     elif action == Action.SET_ISO_MAX.name:
-        color_dict['Iso']['iso_max'] = float(a[1])
+        parameter_dict['Iso']['iso_max'] = float(a[1])
     elif action == Action.SET_ISO_N.name:
-        color_dict['Iso']['iso_n'] = int(a[1])
+        parameter_dict['Iso']['iso_n'] = int(a[1])
     elif action == Action.COLOR_ISO_BLACK.name:
-        color_dict['Iso']['color_scheme'] = 0
+        parameter_dict['Iso']['color_scheme'] = 0
         change_colormap('Iso')
     elif action == Action.COLOR_ISO_RAINBOW.name:
-        color_dict['Iso']['color_scheme'] = 1
+        parameter_dict['Iso']['color_scheme'] = 1
         change_colormap('Iso')
     elif action == Action.COLOR_ISO_TWOTONE.name:
-        color_dict['Iso']['color_scheme'] = 2
+        parameter_dict['Iso']['color_scheme'] = 2
         change_colormap('Iso')
     elif action == Action.COLOR_ISO_WHITE.name:
-        color_dict['Iso']['color_scheme'] = 3
+        parameter_dict['Iso']['color_scheme'] = 3
         change_colormap('Iso')
     elif action == Action.COLORMAP_TYPE_DENSITY.name:
-        color_dict['Field']['datatype'] = 0
+        parameter_dict['Field']['datatype'] = 0
     elif action == Action.COLORMAP_TYPE_VELOCITY.name:
-        color_dict['Field']['datatype'] = 1
+        parameter_dict['Field']['datatype'] = 1
     elif action == Action.COLORMAP_TYPE_FORCES.name:
-        color_dict['Field']['datatype'] = 2
+        parameter_dict['Field']['datatype'] = 2
     elif action == Action.COLORMAP_TYPE_DIVERGENCE.name:
-        color_dict['Field']['datatype'] = 3
+        parameter_dict['Field']['datatype'] = 3
     elif action == Action.COLORMAP_TYPE_DIVERGENCE.name:
-        color_dict['Field']['datatype'] = 4
+        parameter_dict['Field']['datatype'] = 4
     elif action == Action.THREEDIM_ON_OFF.name:
-        color_dict['Field']['3d'] = not color_dict['Field']['3d']
+        parameter_dict['Field']['3d'] = not parameter_dict['Field']['3d']
         vertices = makevertices()
     elif action == Action.HEIGHTFACTOR.name:
-        color_dict['Field']['heightfactor'] = float(a[1])
+        parameter_dict['Field']['heightfactor'] = float(a[1])
     elif action == Action.HEIGHTSCALE.name:
-        color_dict['Field']['heightscale'] = float(a[1])
+        parameter_dict['Field']['heightscale'] = float(a[1])
     elif action == Action.SET_ISO_CLAMP_MIN.name:
-        color_dict['Iso']['clamp_min'] = float(a[1])
+        parameter_dict['Iso']['clamp_min'] = float(a[1])
         change_colormap('Iso')
     elif action == Action.SET_ISO_CLAMP_MAX.name:
-        color_dict['Iso']['clamp_max'] = float(a[1])
+        parameter_dict['Iso']['clamp_max'] = float(a[1])
         change_colormap('Iso')
     elif action == Action.SET_FIELD_CLAMP_MIN.name:
-        color_dict['Field']['clamp_min'] = float(a[1])
+        parameter_dict['Field']['clamp_min'] = float(a[1])
         change_colormap('Field')
     elif action == Action.SET_FIELD_CLAMP_MAX.name:
-        color_dict['Field']['clamp_max'] = float(a[1])
+        parameter_dict['Field']['clamp_max'] = float(a[1])
         change_colormap('Field')
     elif action == Action.SET_VECT_CLAMP_MIN.name:
-        color_dict['Vector']['clamp_min'] = float(a[1])
+        parameter_dict['Vector']['clamp_min'] = float(a[1])
         change_colormap('Vector')
     elif action == Action.SET_VECT_CLAMP_MAX.name:
-        color_dict['Vector']['clamp_max'] = float(a[1])
+        parameter_dict['Vector']['clamp_max'] = float(a[1])
         change_colormap('Vector')
     elif action == Action.SET_STREAMLINE_LENGTH.name:
-        color_dict['Vector']['streamlinelength'] = int(a[1])
+        parameter_dict['Vector']['streamlinelength'] = int(a[1])
     elif action == Action.CHANGE_HUE_FIELD.name:
-        color_dict['Field']['hue'] = float(a[1])
+        parameter_dict['Field']['hue'] = float(a[1])
         change_colormap('Field')
     elif action == Action.CHANGE_HUE_ISO.name:
-        color_dict['Iso']['hue'] = float(a[1])
+        parameter_dict['Iso']['hue'] = float(a[1])
         change_colormap('Iso')
     elif action == Action.CHANGE_HUE_VECT.name:
-        color_dict['Vector']['hue'] = float(a[1])
+        parameter_dict['Vector']['hue'] = float(a[1])
         change_colormap('Vector')
     elif action == Action.CHANGE_SAT_FIELD.name:
-        color_dict['Field']['sat'] = float(a[1])
+        parameter_dict['Field']['sat'] = float(a[1])
         change_colormap('Field')
     elif action == Action.CHANGE_SAT_ISO.name:
-        color_dict['Iso']['sat'] = float(a[1])
+        parameter_dict['Iso']['sat'] = float(a[1])
         change_colormap('Iso')
     elif action == Action.CHANGE_SAT_VECT.name:
-        color_dict['Vector']['sat'] = float(a[1])
+        parameter_dict['Vector']['sat'] = float(a[1])
         change_colormap('Vector')
     elif action == Action.VELO_TO_FORCE.name:
-        color_dict['Vector']['velocity'] = not color_dict['Vector']['velocity']
+        parameter_dict['Vector']['velocity'] = not parameter_dict['Vector']['velocity']
     elif action == Action.DISPLACE.name:
-        color_dict['Vector']['displacement'] = not color_dict['Vector']['displacement']
+        parameter_dict['Vector']['displacement'] = not parameter_dict['Vector']['displacement']
         displace()
     elif action == Action.QUIT.name:
         global keep_connection
@@ -1039,7 +1049,7 @@ def main():
         while not q.empty():
             performAction(q.get())
             # print(q.get())
-        threedim = color_dict['Field']['3d']
+        threedim = parameter_dict['Field']['3d']
         sim.do_one_simulation_step(frozen)
         if threedim:
             vertices = makevertices()
@@ -1052,7 +1062,7 @@ def main():
 
         glBindBuffer(GL_ARRAY_BUFFER, vertices_vbo)
         glVertexPointer(3, GL_FLOAT, 0, None)
-        if not color_dict['Field']['show']:
+        if not parameter_dict['Field']['show']:
             colors = blackcolors()
         glBindBuffer(GL_ARRAY_BUFFER, colors_vbo)
         glBufferData(GL_ARRAY_BUFFER, len(colors) * 4, (c_float * len(colors))(*colors), GL_STATIC_DRAW)
@@ -1073,14 +1083,14 @@ def main():
             glDepthFunc(GL_ALWAYS)
         glClearColor(0.0, 0.0, 0.0, 1.0)
 
-        draw_glyphs = color_dict['Vector']['draw_glyphs']
-        n_glyphs = color_dict['Vector']['n_glyphs']
-        vec_scale = color_dict['Vector']['vec_scale']
-        show_vecs = color_dict['Vector']['show']
+        draw_glyphs = parameter_dict['Vector']['draw_glyphs']
+        n_glyphs = parameter_dict['Vector']['n_glyphs']
+        vec_scale = parameter_dict['Vector']['vec_scale']
+        show_vecs = parameter_dict['Vector']['show']
         global displacement
         if show_vecs:
 
-            if color_dict['Vector']['velocity']:
+            if parameter_dict['Vector']['velocity']:
                 vectfield = sim.field[0:2,:,:]
             else:
                 vectfield = sim.forces
@@ -1094,9 +1104,9 @@ def main():
                         x = round(i * step)
                         y = round(j * step)
                         color = np.ones(3)
-                        if color_dict['Vector']['col_mag']==1:
+                        if parameter_dict['Vector']['col_mag']==1:
                             color = magnitude_to_color(vectfield[0, x, y], vectfield[1, x, y], color_mag_v)
-                        elif color_dict['Vector']['col_mag']==2:
+                        elif parameter_dict['Vector']['col_mag']==2:
                             color = direction_to_color(vectfield[0, x,y], vectfield[1, x, y])
                         id = i + displacement[0,i,j]
                         jd = j + displacement[1,i,j]
@@ -1120,10 +1130,10 @@ def main():
                         y2 = (jd + 0.5) * step / ((DIM - 1) / 1.8) - 0.8
 
                         color = np.ones(3)
-                        if color_dict['Vector']['col_mag'] == 1:
+                        if parameter_dict['Vector']['col_mag'] == 1:
                             color = magnitude_to_color(vectfield[0, round(x), round(y)], vectfield[1, round(x), round(y)],
                                                        color_mag_v)
-                        elif color_dict['Vector']['col_mag'] == 2:
+                        elif parameter_dict['Vector']['col_mag'] == 2:
                             color = direction_to_color(vectfield[0, round(x), round(y)], vectfield[1, round(x), round(y)])
 
                         size = sim.field[-1, round(x), round(y)]
@@ -1134,7 +1144,7 @@ def main():
 
                         elif draw_glyphs == 4:
                             glBegin(GL_LINES)
-                            T = color_dict['Vector']['streamlinelength']
+                            T = parameter_dict['Vector']['streamlinelength']
                             x_d = x2
                             y_d = y2
                             for t in range(T):
@@ -1150,9 +1160,9 @@ def main():
                                 x_t = x + vx / (v_l)
                                 y_t = y + vy / (v_l)
                                 color = np.ones(3)
-                                if color_dict['Vector']['col_mag'] == 1:
+                                if parameter_dict['Vector']['col_mag'] == 1:
                                     color = magnitude_to_color(vx, vy, color_mag_v)
-                                elif color_dict['Vector']['col_mag'] == 2:
+                                elif parameter_dict['Vector']['col_mag'] == 2:
                                     color = direction_to_color(vx, vy)
                                 glColor3f(color[0], color[1], color[2])
 
@@ -1165,7 +1175,7 @@ def main():
                             glEnd()
                         else:
                             glBegin(GL_TRIANGLES)
-                            T = color_dict['Vector']['streamlinelength']
+                            T = parameter_dict['Vector']['streamlinelength']
                             x_d = x2
                             y_d = y2
                             #bottom_lx, bottom_ly, bottom_rx, bottom_ry
@@ -1181,9 +1191,9 @@ def main():
                                 x_t = x + vx / (v_l)
                                 y_t = y + vy / (v_l)
                                 color = np.ones(3)
-                                if color_dict['Vector']['col_mag'] == 1:
+                                if parameter_dict['Vector']['col_mag'] == 1:
                                     color = magnitude_to_color(vx, vy, color_mag_v)
-                                elif color_dict['Vector']['col_mag'] == 2:
+                                elif parameter_dict['Vector']['col_mag'] == 2:
                                     color = direction_to_color(vx, vy)
 
                                 size = 70 - 70*t/T
@@ -1228,7 +1238,7 @@ def main():
                             glEnd()
             glEndList()
 
-        if color_dict['Iso']['show']:
+        if parameter_dict['Iso']['show']:
             isolines()
         if show_vecs:
             glCallList(1)
