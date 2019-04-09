@@ -19,7 +19,7 @@ class Simulation:
         self.forces = np.zeros((2, DIM, DIM))  # fx, fy
 
         self.divfield = np.zeros((DIM, DIM))
-        self.divforces = np.zeros((DIM,DIM))
+        self.divforces = np.zeros((DIM, DIM))
 
     ### Perform one iteration step with all needed operations
     def do_one_simulation_step(self, frozen):
@@ -77,15 +77,16 @@ class Simulation:
                 j1 = int((j0 + 1) % DIM)
                 s = 1 - s
                 t = 1 - t
-                self.field[:2, i, j] = (1 - s) * ((1 - t) * self.field0[:2, i0, j0] + t * self.field0[:2, i0, j1]) + s * (
-                        (1 - t) * self.field0[:2, i1, j0] + t * self.field0[:2, i1, j1])
+                self.field[:2, i, j] = (1 - s) * (
+                            (1 - t) * self.field0[:2, i0, j0] + t * self.field0[:2, i0, j1]) + s * (
+                                               (1 - t) * self.field0[:2, i1, j0] + t * self.field0[:2, i1, j1])
         for i in range(0, DIM):
             for j in range(0, DIM):
                 self.field0[:2, i, j] = self.field[:2, i, j]
 
         self.field0cx = FFT(1, self.field0[0, :, :])
         self.field0cy = FFT(1, self.field0[1, :, :])
-        
+
         for i in range(0, int(DIM / 2 + 1), 1):
             y = 0.5 * i
             for j in range(0, DIM):
@@ -100,9 +101,9 @@ class Simulation:
                 V[1] = self.field0cy[j, i].imag
 
                 self.field0cx[j, i] = complex(f * ((1 - x * x / r) * U[0] - x * y / r * V[0]),
-                                         f * ((1 - x * x / r) * U[1] - x * y / r * V[1]))
+                                              f * ((1 - x * x / r) * U[1] - x * y / r * V[1]))
                 self.field0cy[j, i] = complex((f * (-y * x / r * U[0] + (1 - y * y / r) * V[0])),
-                                         (f * (-y * x / r * U[1] + (1 - y * y / r) * V[1])))
+                                              (f * (-y * x / r * U[1] + (1 - y * y / r) * V[1])))
 
         self.field0[0, :, :] = FFT(-1, self.field0cx)
         self.field0[1, :, :] = FFT(-1, self.field0cy)
@@ -133,16 +134,23 @@ class Simulation:
                 j0 = int((DIM + (j0 % DIM)) % DIM)
                 j1 = int((j0 + 1) % DIM)
 
-                self.field[-1, i, j] = (1 - s) * ((1 - t) * self.field0[-1, i0, j0] + t * self.field0[-1, i0, j1]) + s * (
-                        (1 - t) * self.field0[-1, i1, j0] + t * self.field0[-1, i1, j1])
+                self.field[-1, i, j] = (1 - s) * (
+                            (1 - t) * self.field0[-1, i0, j0] + t * self.field0[-1, i0, j1]) + s * (
+                                               (1 - t) * self.field0[-1, i1, j0] + t * self.field0[-1, i1, j1])
 
     ### Calculate the divergences of velocities and forces
     def calc_divergence(self):
         DIM = self.DIM
-        for i in range(0,DIM):
-            for j in range(0,DIM):
-                self.divfield[i,j] = -( self.field[0,i-1,j]-self.field[0,i,j] + self.field[0,i,j] - self.field[0,(i+1)%DIM,j] + self.field[1,i,j-1]-self.field[1,i,j] +  self.field[1,i,j] - self.field[1,i,(j+1)%DIM])
-                self.divforces[i,j] = -(self.forces[0,i-1,j]-self.forces[0,i,j] + self.forces[0,(i+1)%DIM,j]-self.forces[0,i,j] + self.forces[1,i,j-1]-self.forces[1,i,j] + self.forces[1,i,(j+1)%DIM]- self.forces[1,i,j])
+        for i in range(0, DIM):
+            for j in range(0, DIM):
+                self.divfield[i, j] = -(self.field[0, i - 1, j] - self.field[0, i, j] +
+                                        self.field[0, i, j] - self.field[0, (i + 1) % DIM, j] +
+                                        self.field[1, i, j - 1] - self.field[1, i, j] +
+                                        self.field[1, i, j] - self.field[1, i, (j + 1) % DIM])
+                self.divforces[i, j] = -(self.forces[0, i - 1, j] - self.forces[0, i, j] +
+                                         self.forces[0, (i + 1) % DIM, j] - self.forces[0, i, j] +
+                                         self.forces[1, i, j - 1] - self.forces[1, i, j] +
+                                         self.forces[1, i, (j + 1) % DIM] - self.forces[1, i, j])
 
 
 ### Clamp
@@ -153,5 +161,3 @@ def clamp(x):
 ### Fast Fourier Transform
 def FFT(direction, v):
     return np.fft.rfft2(v) if direction == 1 else np.fft.irfft2(v)
-
-
