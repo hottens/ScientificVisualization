@@ -629,15 +629,15 @@ def drawArrow(x, y, vx, vy, size, color, max_length):
     glBegin(GL_TRIANGLES)
 # phaux shading implemented with darker (*0.7, *0.4) and lighter corners (*1.2)
     glColor3f(color[0]*0.7, color[1]*0.7, color[2]*0.7)
-    glVertex3f(x + vx, y + vy,0)
-    glVertex3f((x + 0.5 * vx) - 2 * (size / DIM) * vy, (y + 0.5 * vy) + 2 * (size / DIM) * vx,0)
+    glVertex3f(x + vx, y + vy,0.05)
+    glVertex3f((x + 0.5 * vx) - 2 * (size / DIM) * vy, (y + 0.5 * vy) + 2 * (size / DIM) * vx,0.05)
 
     glColor3f(color[0]*1.2, color[1]*1.2, color[2]* 1.2)
-    glVertex3f((x + 0.5 * vx), (y + 0.5 * vy),0)
-    glVertex3f((x + 0.5 * vx), (y + 0.5 * vy),0)
+    glVertex3f((x + 0.5 * vx), (y + 0.5 * vy),0.05)
+    glVertex3f((x + 0.5 * vx), (y + 0.5 * vy),0.05)
     glColor3f(color[0]*0.4, color[1]*0.4, color[2]*0.4)
-    glVertex3f(x + vx, y + vy,0)
-    glVertex3f((x + 0.5 * vx) + 2 * (size / DIM) * vy, (y + 0.5 * vy) - 2 * (size / DIM) * vx,0)
+    glVertex3f(x + vx, y + vy,0.05)
+    glVertex3f((x + 0.5 * vx) + 2 * (size / DIM) * vy, (y + 0.5 * vy) - 2 * (size / DIM) * vx,0.05)
     glEnd()
 
 
@@ -1155,10 +1155,10 @@ def main():
                                         color = colors[18*(xx-1) + 882*(yy-1) +3 : 18*(xx-1) + 882*(yy-1) +6]
                                 glColor3f(color[0], color[1], color[2])
 
-                                glVertex2f(x_d, y_d)
+                                glVertex3f(x_d, y_d,0.05)
                                 x_d += vx/(v_l*49)
                                 y_d += vy/(v_l*49)
-                                glVertex2f(x_d, y_d)
+                                glVertex3f(x_d, y_d,0.05)
                                 x = x_t
                                 y = y_t
                             glEnd()
@@ -1207,25 +1207,25 @@ def main():
 
                                 if t > 0:
                                     glColor4f(color[0], color[1], color[2], 1 - (t-1) / T)
-                                    glVertex2f(bottom_lx, bottom_ly)
+                                    glVertex3f(bottom_lx, bottom_ly,0.05)
                                     glColor4f(color[0], color[1], color[2], 1 - t / T)
-                                    glVertex2f(lx, ly)
-                                    glVertex2f(x_d, y_d)
+                                    glVertex3f(lx, ly,0.05)
+                                    glVertex3f(x_d, y_d,0.05)
 
                                     glColor4f(color[0], color[1], color[2], 1 - (t-1) / T)
-                                    glVertex2f(bottom_rx, bottom_ry)
+                                    glVertex3f(bottom_rx, bottom_ry,0.05)
                                     glColor4f(color[0], color[1], color[2], 1 - t / T)
-                                    glVertex2f(rx, ry)
-                                    glVertex2f(x_d, y_d)
+                                    glVertex3f(rx, ry,0.05)
+                                    glVertex3f(x_d, y_d,0.05)
 
                                 glColor4f(color[0], color[1], color[2], 1 - t / T)
-                                glVertex2f(lx, ly)
-                                glVertex2f(rx, ry)
+                                glVertex3f(lx, ly,0.05)
+                                glVertex3f(rx, ry,0.05)
 
                                 x_d += vx / (v_l * 49)
                                 y_d += vy / (v_l * 49)
                                 glColor4f(color[0], color[1], color[2], 1 - (t + 1) / T)
-                                glVertex2f(x_d, y_d)
+                                glVertex3f(x_d, y_d,0.05)
 
                                 bottom_lx = lx
                                 bottom_ly = ly
