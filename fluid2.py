@@ -57,7 +57,7 @@ COLOR_WHITE = 3
 
 # dictionary that holds most of the parameters for each of the three types of elements that
 # can be shown.
-#       GENERAL PARAMETERS
+#       GENERAL PARAMETERS (i.e. are in all three categories)
 # 'nlevels'     :   holds the number of colors that are shown
 # 'scale'       :   holds the scaling factor for the colors
 # 'color_scheme':   holds in what color scheme the given type is shown
@@ -68,10 +68,13 @@ COLOR_WHITE = 3
 # 'sat'         :   saturation of the shown colors
 #       FIELD PARAMETERS
 # '3d'          :   holds whether the Visualization is shown in 3d or note
+# '3ddata'      :   holds the datatype which is visualized with the height
 # 'heightscale' :   holds the scaling factor for the height
 # 'heightfactor':   holds the factor with which the height is multiplied
 # 'datatype'    :   holds whether density (=0), velocity (=1), forces (=2) or
 #                   divergence (=3) is shown
+# 'xlook'       :   holds the x coordinate of the eye location
+# 'ylook'       :   holds the y coordinate of the eye location
 #       ISO PARAMETERS
 # 'iso_min'     :   holds value for lowest isoline
 # 'iso_max'     :   holds value for highest isoline
