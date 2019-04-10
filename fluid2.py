@@ -1102,6 +1102,7 @@ def main():
                         elif parameter_dict['Vector']['col_mag']==3:
                             xx = y
                             yy = x
+
                             if yy < 49 & xx < 49:
                                 color = colors[18*xx + 882*yy : 18*xx + 882*yy + 3]
 
@@ -1143,16 +1144,25 @@ def main():
                                 elif parameter_dict['Vector']['col_mag'] == 2:
                                     color = direction_to_color(vx, vy)
                                 elif parameter_dict['Vector']['col_mag']==3:
-                                    xx = y
-                                    yy = x
-                                    if yy < 49 & xx < 49:
+                                    xx = int(y)
+                                    yy = int(x)
+                                    if xx > 49:
+                                        xx = 49
+                                    if yy > 49:
+                                        yy = 49
+                                    if xx < 0:
+                                        xx = 0
+                                    if yy < 0:
+                                        yy = 0
+                                    if (yy < 49) & (xx < 49):
+
                                         color = colors[18*xx + 882*yy : 18*xx + 882*yy + 3]
 
                                     elif (xx+yy) == 98:
 
                                         color = colors[18*(xx-1) + 882*(yy-1) -6: 18*(xx-1) + 882*(yy-1) -3]
                                     elif xx == 49:
-                                        color = colors[18*(xx-1) + 882*(yy-1) -3 : 18*(xx-1) + 882*(yy-1)]
+                                        color = colors[18*(xx-1) + 882*yy -6 : 18*(xx-1) + 882*yy - 3]
                                     else:
                                         color = colors[18*(xx-1) + 882*(yy-1) +3 : 18*(xx-1) + 882*(yy-1) +6]
                                 glColor3f(color[0], color[1], color[2])
@@ -1188,16 +1198,24 @@ def main():
                                 elif parameter_dict['Vector']['col_mag'] == 2:
                                     color = direction_to_color(vx, vy)
                                 elif parameter_dict['Vector']['col_mag']==3:
-                                    xx = y
-                                    yy = x
-                                    if yy < 49 & xx < 49:
+                                    xx = int(y)
+                                    yy = int(x)
+                                    if xx > 49:
+                                        xx = 49
+                                    if yy > 49:
+                                        yy = 49
+                                    if xx < 0:
+                                        xx = 0
+                                    if yy < 0:
+                                        yy = 0
+                                    if (yy < 49) & (xx < 49):
                                         color = colors[18*xx + 882*yy : 18*xx + 882*yy + 3]
 
                                     elif (xx+yy) == 98:
 
                                         color = colors[18*(xx-1) + 882*(yy-1) -6: 18*(xx-1) + 882*(yy-1) -3]
                                     elif xx == 49:
-                                        color = colors[18*(xx-1) + 882*(yy-1) -3 : 18*(xx-1) + 882*(yy-1)]
+                                        color = colors[18*(xx-1) + 882*yy -6 : 18*(xx-1) + 882*yy - 3]
                                     else:
                                         color = colors[18*(xx-1) + 882*(yy-1) +3 : 18*(xx-1) + 882*(yy-1) +6]
 
