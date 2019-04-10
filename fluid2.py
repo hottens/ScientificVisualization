@@ -1129,19 +1129,28 @@ def main():
                             for t in range(T):
                                 if x > 49 or y > 49 or x < 0 or y < 0:
                                     break
-                                #print("x: {}, y: {}".format(x, y))
-                                [vx, vy] = interpolateVelocity(x, y,vectfield)
-                                # vx = sim.field[0, round(x), round(y)]
-                                # vy = sim.field[1, round(x), round(y)]
+
+                                # Determine the velocity on (x, y) by means of interpolation
+                                [vx, vy] = interpolateVelocity(x, y, vectfield)
+
+                                # Determine the velocity magnitude
                                 v_l = np.sqrt(vx*vx + vy*vy)
+
+                                # Stop if the velocity is too low
                                 if v_l < 0.001:
                                     break
+
+                                # Determine (x, y) at new time t
                                 x_t = x + vx / (v_l)
                                 y_t = y + vy / (v_l)
                                 color = np.ones(3)
+
+                                # Color the streamline
                                 if parameter_dict['Vector']['col_mag'] == 1:
+                                    # Magnitude to color
                                     color = magnitude_to_color(vx, vy)
                                 elif parameter_dict['Vector']['col_mag'] == 2:
+                                    # Direction to color
                                     color = direction_to_color(vx, vy)
                                 elif parameter_dict['Vector']['col_mag']==3:
                                     xx = int(y)
@@ -1167,6 +1176,7 @@ def main():
                                         color = colors[18*(xx-1) + 882*(yy-1) +3 : 18*(xx-1) + 882*(yy-1) +6]
                                 glColor3f(color[0], color[1], color[2])
 
+                                # Draw the line segment
                                 glVertex3f(x_d, y_d,0.05)
                                 x_d += vx/(v_l*49)
                                 y_d += vy/(v_l*49)
@@ -1175,19 +1185,15 @@ def main():
                                 y = y_t
                             glEnd()
                         else:
-                    # draw stream tubes
+                            # draw stream tubes
                             glBegin(GL_TRIANGLES)
                             T = parameter_dict['Vector']['slinelength']
                             x_d = x2
                             y_d = y2
-                            #bottom_lx, bottom_ly, bottom_rx, bottom_ry
                             for t in range(T):
                                 if x > 49 or y > 49 or x < 0 or y < 0:
                                     break
-                                # print("x: {}, y: {}".format(x, y))
                                 [vx, vy] = interpolateVelocity(x, y,vectfield)
-                                # vx = sim.field[0, round(x), round(y)]
-                                # vy = sim.field[1, round(x), round(y)]
                                 v_l = np.sqrt(vx * vx + vy * vy)
 
                                 x_t = x + vx / (v_l)
@@ -1212,19 +1218,22 @@ def main():
                                         color = colors[18*xx + 882*yy : 18*xx + 882*yy + 3]
 
                                     elif (xx+yy) == 98:
-
                                         color = colors[18*(xx-1) + 882*(yy-1) -6: 18*(xx-1) + 882*(yy-1) -3]
                                     elif xx == 49:
                                         color = colors[18*(xx-1) + 882*yy -6 : 18*(xx-1) + 882*yy - 3]
                                     else:
                                         color = colors[18*(xx-1) + 882*(yy-1) +3 : 18*(xx-1) + 882*(yy-1) +6]
 
+                                # Make the triangle size depend on t
                                 size = 70 - 70*t/T
+
+                                # Remember corner coordinates for 'supporting' triangles
                                 lx = x_d - (size / DIM) * vy/(v_l * 49)
                                 ly = y_d + (size / DIM) * vx/(v_l * 49)
                                 rx = x_d + (size / DIM) * vy / (v_l * 49)
                                 ry = y_d - (size / DIM) * vx / (v_l * 49)
 
+                                # Draw 'supporting' triangles to approach cone shape
                                 if t > 0:
                                     glColor4f(color[0], color[1], color[2], 1 - (t-1) / T)
                                     glVertex3f(bottom_lx, bottom_ly,0.05)
@@ -1238,6 +1247,7 @@ def main():
                                     glVertex3f(rx, ry,0.05)
                                     glVertex3f(x_d, y_d,0.05)
 
+                                # Make opacity depend on t
                                 glColor4f(color[0], color[1], color[2], 1 - t / T)
                                 glVertex3f(lx, ly,0.05)
                                 glVertex3f(rx, ry,0.05)
@@ -1260,13 +1270,16 @@ def main():
                                     break
                             glEnd()
             glEndList()
-# show isolines if necessary
+
+        # show isolines if necessary
         if parameter_dict['Iso']['show']:
             isolines()
-# draw vectors from list if necessary
+
+        # draw vectors from list if necessary
         if show_vecs:
             glCallList(1)
-# refresh legend
+
+        # refresh legend
         makelegend()
         pygame.display.flip()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
