@@ -1190,7 +1190,7 @@ def main():
                                 elif parameter_dict['Vector']['col_mag']==3:
                                     xx = y
                                     yy = x
-                                    if yy < 49 & xx < 49:
+                                    if yy < 49 and xx < 49:
                                         color = colors[18*xx + 882*yy : 18*xx + 882*yy + 3]
 
                                     elif (xx+yy) == 98:
