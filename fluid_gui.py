@@ -4,28 +4,27 @@ import tkinter
 from tkinter import ttk
 import numpy as np
 
+# Main widget
 top = tkinter.Tk()
 width = 200
 
 velo = True
 coldir = 0
 n_glyphs = 16
-#Make the notebook
-nb = ttk.Notebook(top)
 
-#Make 1st tab
+#Make the notebook and tabs
+nb = ttk.Notebook(top)
 f1 = tkinter.Frame(nb)
 nb.add(f1, text="Field")
-#Make 2nd tab
 f2 = tkinter.Frame(nb)
 nb.add(f2, text="Vectors")
-#Make 3rd tab
 f3 = tkinter.Frame(nb)
 nb.add(f3, text="Isolines")
 
 nb.select(f1)
 nb.enable_traversal()
 
+### Some functions to give callback to visualization application
 def option_changed_vc(*args):
     callBack(VectorColoringDict[vector_coloring_dropdown.get()])
 
@@ -231,14 +230,12 @@ ISat.set(1.0)
 ISatB = tkinter.Button(f3, text = "Set saturation", command = lambda: callBack(Action.CHANGE_SAT_ISO, ISat.get()))
 
 
-
 isoClaMinSlider = tkinter.Scale(f3, from_=0.0, to = 4.99, resolution=0.001, orient='horizontal')
 isoClaMinSlider.set(0.0)
 isoClaMinButton = tkinter.Button(f3, text="Set iso clamp min", command=lambda: callBack(Action.SET_ISO_CLAMP_MIN, isoClaMinSlider.get()))
 isoClaMaxSlider = tkinter.Scale(f3, from_=0.02, to = 5.00, resolution=0.001, orient='horizontal')
 isoClaMaxSlider.set(1.0)
 isoClaMaxButton = tkinter.Button(f3, text="Set iso clamp max", command=lambda: callBack(Action.SET_ISO_CLAMP_MAX, isoClaMaxSlider.get()))
-
 
 
 visc_frame = ttk.Labelframe(top, text='Viscosity')
@@ -253,6 +250,7 @@ DtButton = tkinter.Button(top, text="Set dt", command=lambda: callBack(Action.SE
 FreezeButton = tkinter.Button(top, text="Freeze", command=lambda: callBack(Action.FREEZE))
 
 
+# Pack everything
 nb.pack()
 field_data_dropdown.pack()
 field_c_dropdown.pack()
@@ -319,6 +317,8 @@ isoColDropdown.pack()
 
 F3d.pack()
 
+
+### Interactive data value support
 while True:
     fieldClaMinSlider.configure(to = fieldClaMaxSlider.get()-0.01)
     fieldClaMaxSlider.configure(from_ = fieldClaMinSlider.get()+0.01)
