@@ -8,6 +8,8 @@ top = tkinter.Tk()
 width = 200
 
 velo = True
+coldir = 0
+n_glyphs = 16
 #Make the notebook
 nb = ttk.Notebook(top)
 
@@ -38,6 +40,8 @@ def option_changed_iso(*args):
 
 def callBack(action, value=None):
     global velo
+    global coldir
+    global n_glyphs
     print(action)
     clientsocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     clientsocket.connect(('localhost', 8089))
@@ -48,6 +52,14 @@ def callBack(action, value=None):
     print(action.name.encode('utf-8'))
     if action == Action.VELO_TO_FORCE:
         velo = not velo
+    if action == Action.COLOR_DIR:
+        coldir += 1
+        if coldir > 2:
+            coldir = 0
+    if action == Action.GLYPH_CHANGE_N:
+        n_glyphs += 5
+        if n_glyphs > 50:
+            n_glyphs = 5
 
 
 ### Field
@@ -92,10 +104,10 @@ FHeightScale = tkinter.Scale(f1, from_ =0.01, to= 2.00, resolution = 0.01, orien
 FHeightScale.set(1.0)
 FHeightScaleB = tkinter.Button(f1, text = "Set height scale for 3d", command = lambda: callBack(Action.HEIGHTSCALE, FHeightScale.get()))
 
-fieldClaMinSlider = tkinter.Scale(f1, from_=0.0, to = 4.99, resolution=0.001, orient='horizontal')
+fieldClaMinSlider = tkinter.Scale(f1, from_=-1.00, to = 4.99, resolution=0.001, orient='horizontal')
 fieldClaMinSlider.set(0.0)
 fieldClaMinButton = tkinter.Button(f1, text="Set field clamp min", command=lambda: callBack(Action.SET_FIELD_CLAMP_MIN, fieldClaMinSlider.get()))
-fieldClaMaxSlider = tkinter.Scale(f1, from_=0.02, to = 5.00, resolution=0.001, orient='horizontal')
+fieldClaMaxSlider = tkinter.Scale(f1, from_=-0.99, to = 5.00, resolution=0.001, orient='horizontal')
 fieldClaMaxSlider.set(1.0)
 fieldClaMaxButton = tkinter.Button(f1, text="Set field clamp max", command=lambda: callBack(Action.SET_FIELD_CLAMP_MAX, fieldClaMaxSlider.get()))
 
@@ -129,11 +141,11 @@ vector_coloring_dropdown = tkinter.StringVar()
 vector_coloring_dropdown.set('Black and White')
 vector_coloring_dropdown.trace('w', option_changed_vc)
 vecColDropdown = tkinter.OptionMenu(v_color, vector_coloring_dropdown, *VectorColoringDict)
-ColorDir = tkinter.Button(v_color, text="Color Dir", command=lambda: callBack(Action.COLOR_DIR))
+ColorDir = tkinter.Button(v_color, text="Color to Magnitude/Direction/Scalar Field", command=lambda: callBack(Action.COLOR_DIR))
 v_color.grid(row=1, columnspan=7, sticky='WE', padx=5, pady=5, ipadx=5, ipady=5)
 
 v_type = ttk.Labelframe(f2, text='Type')
-B = tkinter.Button(v_type, text="Change number of vectors", command=lambda: callBack(Action.GLYPH_CHANGE_N))
+B = tkinter.Button(v_type, text="Change number of vectors (16^2)", command=lambda: callBack(Action.GLYPH_CHANGE_N))
 v_typeButton = tkinter.Button(v_type, text="Change vector type", command=lambda: callBack(Action.GLYPH_CHANGE))
 v_type.grid(row=1, column = 10, columnspan=7, sticky='WE', padx=5, pady=5, ipadx=5, ipady=5)
 
@@ -157,7 +169,7 @@ VSat = tkinter.Scale(v_color, from_ =0, to= 1.00, resolution = 0.01, orient = 'h
 VSat.set(1.0)
 VSatB = tkinter.Button(v_color, text = "Set saturation", command = lambda: callBack(Action.CHANGE_SAT_VECT, VSat.get()))
 
-VdatatypeB = tkinter.Button(f2, text = "Show forcefield", command=lambda: callBack(Action.VELO_TO_FORCE))
+VdatatypeB = tkinter.Button(f2, text = "Show forcefield (now shown: velocities)", command=lambda: callBack(Action.VELO_TO_FORCE))
 
 
 VNlevels = tkinter.Scale(v_color, from_=2, to=256, orient='horizontal')
@@ -228,8 +240,8 @@ isoClaMaxButton = tkinter.Button(f3, text="Set iso clamp max", command=lambda: c
 
 
 visc_frame = ttk.Labelframe(top, text='Viscosity')
-visc_up = tkinter.Button(visc_frame, text="Visc up", command=lambda: callBack(Action.VISC_UP))
-visc_down = tkinter.Button(visc_frame, text="Visc down", command=lambda: callBack(Action.VISC_DOWN))
+visc_up = tkinter.Button(visc_frame, text="Visc up (*5)", command=lambda: callBack(Action.VISC_UP))
+visc_down = tkinter.Button(visc_frame, text="Visc down (/5)", command=lambda: callBack(Action.VISC_DOWN))
 visc_up.grid(column=0,row=0, columnspan=1, sticky="nsew")
 visc_down.grid(column=1,row=0, columnspan=1, sticky="nsew")
 
@@ -313,8 +325,15 @@ while True:
     isoClaMinSlider.configure(to = isoClaMaxSlider.get()-0.01)
     isoClaMaxSlider.configure(from_ = isoClaMinSlider.get()+0.01)
     if velo:
-        VdatatypeB.configure(text = 'Show forcefield')
+        VdatatypeB.configure(text = 'Show forcefield (now shown: velocities)')
     else:
-        VdatatypeB.configure(text = 'Show velocities')
+        VdatatypeB.configure(text = 'Show velocities (now shown: forcefield)')
+    if coldir == 0:
+        ColorDir.configure(text = 'Color Magnitude (Direction/Scalar Field)')
+    elif coldir == 1:
+        ColorDir.configure(text = 'Color Direction (Scalar Field/Magnitude)')
+    else:
+        ColorDir.configure(text = 'Color Scalar Field (Magnitude/Direction)')
+    B.configure(text = 'Change number of vectors (' +str(n_glyphs) +'^2)')
     top.update_idletasks()
     top.update()

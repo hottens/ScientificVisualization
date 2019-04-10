@@ -395,7 +395,7 @@ def vis_color():
     # Divergence velocity
     elif colormap_type == 3:
 
-        valuefield = 50 * sim.divfield[:, :] + 0.5
+        valuefield = 50 * sim.divfield[:, :]
 
     # Divergence forces
     elif colormap_type == 4:
@@ -436,7 +436,7 @@ def makevertices():
                     else:
                         z[k] = (hf*z[k])**hs
             else:
-                z = [-1,-1,-1,-1]
+                z = [0,0,0,0]
             p0 = [ i / (49 / 2) - 1,j / (49 / 1.8) - 0.8, z[0]]
             p1 = [i / (49 / 2) - 1, (j + 1) / (49 / 1.8) - 0.8, z[1]]
             p2 = [(i + 1) / (49 / 2) - 1, (j + 1) / (49 / 1.8) - 0.8, z[2]]
@@ -466,34 +466,41 @@ def drawText(input, num, rightalign=False):
 def makelegend():
     vertices_leg = []
     colors_leg = []
+    threedim = parameter_dict['Field']['3d']
+    if threedim:
+        y = [-0.4,-0.4,-0.4,-0.4]
+        z = [1.0,0.933,0.867,0.8]
+    else:
+        y = [-0.8,-0.867,-0.933,-1.0]
+        z = [0,0,0,0]
     lengthf = parameter_dict['Field']['nlevels']
     lengthv = parameter_dict['Vector']['nlevels']
     lengthi = parameter_dict['Iso']['nlevels']
     length = lengthf+lengthv+lengthi
 
     for i in range(lengthf):
-        p0 = [0.8*(i / (lengthf / 2) - 1), -0.867, 0]
-        p1 = [0.8*((i + 1) / (lengthf / 2) - 1), -0.867, 0]
-        p2 = [0.8*((i + 1) / (lengthf / 2) - 1), -0.8, 0]
-        p3 = [0.8*(i / (lengthf / 2) - 1), -0.8, 0]
+        p0 = [0.8*(i / (lengthf / 2) - 1)       , y[1], z[1]]
+        p1 = [0.8*((i + 1) / (lengthf / 2) - 1) , y[1], z[1]]
+        p2 = [0.8*((i + 1) / (lengthf / 2) - 1) , y[0], z[0]]
+        p3 = [0.8*(i / (lengthf / 2) - 1)       , y[0], z[0]]
         vertices_leg += p0 + p1 + p2 + p0 + p2 + p3
         colval = colormap_field[i]
         colval = colval.tolist()
         colors_leg += colval * 6
     for j in range(lengthv):
-        p0 = [0.8*(j / (lengthv / 2) - 1), -0.933, 0]
-        p1 = [0.8*((j + 1) / (lengthv / 2) - 1), -0.933, 0]
-        p2 = [0.8*((j + 1) / (lengthv / 2) - 1), -0.867, 0]
-        p3 = [0.8*(j / (lengthv / 2) - 1), -0.867, 0]
+        p0 = [0.8*(j / (lengthv / 2) - 1)       , y[2], z[2]]
+        p1 = [0.8*((j + 1) / (lengthv / 2) - 1) , y[2], z[2]]
+        p2 = [0.8*((j + 1) / (lengthv / 2) - 1) , y[1], z[1]]
+        p3 = [0.8*(j / (lengthv / 2) - 1)       , y[1], z[1]]
         vertices_leg += p0 + p1 + p2 + p0 + p2 + p3
         colval = colormap_vect[j]
         colval = colval.tolist()
         colors_leg += colval * 6
     for k in range(lengthi):
-        p0 = [0.8*(k / (lengthi / 2) - 1), -1.0, 0]
-        p1 = [0.8*((k + 1) / (lengthi / 2) - 1), -1.0, 0]
-        p2 = [0.8*((k + 1) / (lengthi / 2) - 1), -0.933, 0]
-        p3 = [0.8*(k / (lengthi / 2) - 1), -0.933, 0]
+        p0 = [0.8*(k / (lengthi / 2) - 1)       , y[3], z[3]]
+        p1 = [0.8*((k + 1) / (lengthi / 2) - 1) , y[3], z[3]]
+        p2 = [0.8*((k + 1) / (lengthi / 2) - 1) , y[2], z[2]]
+        p3 = [0.8*(k / (lengthi / 2) - 1)       , y[2], z[2]]
         vertices_leg += p0 + p1 + p2 + p0 + p2 + p3
         colval = colormap_iso[k]
         colval = colval.tolist()
@@ -516,6 +523,17 @@ def makelegend():
 
     glColorPointer(3, GL_FLOAT, 0, None)
     glDrawArrays(GL_TRIANGLES, 0, 6*length)
+    if threedim:
+        glBegin(GL_LINES)
+        glVertex3f(-1,-0.8,0)
+        glVertex3f(1,-0.8,0)
+        glVertex3f(-1,-0.8,0)
+        glVertex3f(-1,1,0)
+        glVertex3f(-1,1,0)
+        glVertex3f(1,1,0)
+        glVertex3f(1,1,0)
+        glVertex3f(1,-0.8,0)
+        glEnd()
 
 # include text
     drawText(parameter_dict['Field']['clamp_min'],2)
