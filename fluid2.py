@@ -692,10 +692,9 @@ def drag(mx, my):
 def displace():
     global displacement
     if parameter_dict['Vector']['displacement']:
-        for i in range(50):
-            for j in range(50):
-                displacement[0,i,j] = random.uniform(-0.5,0.5)
-                displacement[1,i,j] = random.uniform(-0.5,0.5)
+
+        displacement = np.random.rand(2,50,50) -0.5
+
     else:
         displacement = np.zeros((2,50,50))
 
