@@ -11,6 +11,7 @@ from ctypes import *
 from threading import Thread
 from PIL import Image
 import random
+import fluid_gui as fg
 
 from OpenGL.GL import *
 from OpenGL.GLU import *
@@ -1308,6 +1309,7 @@ def main():
         makelegend()
         pygame.display.flip()
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
+        fg.update()
 
 # initialize visualization
 pygame.init()
@@ -1319,4 +1321,5 @@ glEnable(GL_DEPTH_TEST)
 glEnable(GL_BLEND);
 glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 glEnableClientState(GL_VERTEX_ARRAY)
+fg.initialize()
 main()
