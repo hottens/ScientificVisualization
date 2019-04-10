@@ -91,7 +91,8 @@ COLOR_WHITE = 3
 
 parameter_dict = {'Field': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_BLACKWHITE,
                         'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'datatype': 0,
-                        '3d': False, 'heightscale': 1.0, 'heightfactor': 0.05, 'hue':0,'sat':1.0},
+                        '3d': False, '3ddata': 0, 'heightscale': 1.0, 'heightfactor': 0.05,
+                        'hue':0,'sat':1.0, 'xlook':0, 'ylook':-1.5},
               'Iso': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE,
                       'show': False, 'clamp_min': 0.0, 'clamp_max':1.0, 'iso_min': 0.7, 'iso_max':1.0, 'iso_n': 1,
                       'hue': 0,'sat':1.0},
@@ -410,7 +411,7 @@ def makevertices():
     threedim = parameter_dict['Field']['3d']
     hf = parameter_dict['Field']['heightfactor']
     hs = parameter_dict['Field']['heightscale']
-    datatype = parameter_dict['Field']['datatype']
+    datatype = parameter_dict['Field']['3ddata']
 
 # get the values for printing the height plot
     if datatype == 0:
@@ -525,6 +526,7 @@ def makelegend():
     glDrawArrays(GL_TRIANGLES, 0, 6*length)
     if threedim:
         glBegin(GL_LINES)
+        glColor3f(1,1,1)
         glVertex3f(-1,-0.8,0)
         glVertex3f(1,-0.8,0)
         glVertex3f(-1,-0.8,0)
@@ -874,6 +876,20 @@ def performAction(message):
         change_colormap('Vector')
     elif action == Action.VELO_TO_FORCE.name:
         parameter_dict['Vector']['velocity'] = not parameter_dict['Vector']['velocity']
+    elif action == Action.THREEDIM_TYPE_DENSITY.name:
+        parameter_dict['Field']['3ddata'] = 0
+    elif action == Action.THREEDIM_TYPE_VELOCITY.name:
+        parameter_dict['Field']['3ddata'] = 1
+    elif action == Action.THREEDIM_TYPE_FORCES.name:
+        parameter_dict['Field']['3ddata'] = 2
+    elif action == Action.THREEDIM_TYPE_DIVERGENCE.name:
+        parameter_dict['Field']['3ddata'] = 3
+    elif action == Action.THREEDIM_TYPE_DIVERGENCE_FORCE.name:
+        parameter_dict['Field']['3ddata'] = 4
+    elif action == Action.CHANGE_X_LOOK.name:
+        parameter_dict['Field']['xlook'] = float(a[1])
+    elif action == Action.CHANGE_Y_LOOK.name:
+        parameter_dict['Field']['ylook'] = float(a[1])
     elif action == Action.DISPLACE.name:
         parameter_dict['Vector']['displacement'] = not parameter_dict['Vector']['displacement']
         displace()
@@ -995,6 +1011,8 @@ def main():
 
 
         threedim = parameter_dict['Field']['3d']
+        xlook = parameter_dict['Field']['xlook']
+        ylook = parameter_dict['Field']['ylook']
 # change the vertices in z direction if a heightplot is asked
         if threedim:
             vertices = makevertices()
@@ -1022,7 +1040,7 @@ def main():
 # change perspective if we look in 3d
         if threedim:
             gluPerspective(90, 1, 0.1, 10)
-            gluLookAt(0,-1.5, 0.4,0, 0, 0, 0, -0.5, 0.7)
+            gluLookAt(xlook,ylook, 0.4,0, 0, 0, 0, 0, 1)
             glDepthFunc(GL_LESS)
         else:
             gluLookAt(0,0, 1,0, 0, 0, 0, 1, 0)
@@ -1152,6 +1170,7 @@ def main():
                                 elif parameter_dict['Vector']['col_mag'] == 2:
                                     # Direction to color
                                     color = direction_to_color(vx, vy)
+
                                 elif parameter_dict['Vector']['col_mag']==3:
                                     xx = int(y)
                                     yy = int(x)
@@ -1163,7 +1182,8 @@ def main():
                                         xx = 0
                                     if yy < 0:
                                         yy = 0
-                                    if (yy < 49) & (xx < 49):
+
+                                    if yy < 49 and xx < 49:
 
                                         color = colors[18*xx + 882*yy : 18*xx + 882*yy + 3]
 
@@ -1214,7 +1234,9 @@ def main():
                                         xx = 0
                                     if yy < 0:
                                         yy = 0
-                                    if (yy < 49) & (xx < 49):
+
+                                    if yy < 49 and xx < 49:
+
                                         color = colors[18*xx + 882*yy : 18*xx + 882*yy + 3]
 
                                     elif (xx+yy) == 98:

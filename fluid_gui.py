@@ -31,6 +31,9 @@ def option_changed_vc(*args):
 def option_changed_fielddata(*args):
     callBack(ftype_dict[field_datatype_dropdown.get()])
 
+def option_changed_field3ddata(*args):
+    callBack(f3dtype_dict[field_3ddatatype_dropdown.get()])
+
 def option_changed_fieldcolor(*args):
     callBack(fcolor_dict[field_color_dropdown.get()])
 
@@ -69,6 +72,13 @@ ftype_dict = {'Density': Action.COLORMAP_TYPE_DENSITY,
               'Velocity': Action.COLORMAP_TYPE_VELOCITY,
               'Forces': Action.COLORMAP_TYPE_FORCES
               }
+f3dtype_dict = {'Height: Density': Action.THREEDIM_TYPE_DENSITY,
+
+              'Height: Divergence Velocity field': Action.THREEDIM_TYPE_DIVERGENCE,
+              'Height: Divergence Force field': Action.THREEDIM_TYPE_DIVERGENCE_FORCE,
+              'Height: Velocity': Action.THREEDIM_TYPE_VELOCITY,
+              'Height: Forces': Action.THREEDIM_TYPE_FORCES
+              }
 fcolor_dict = {'Black and White': Action.SCALAR_COLOR_BLACK,
                'Rainbow': Action.SCALAR_COLOR_RAINBOW,
                'Twotone': Action.SCALAR_COLOR_TWOTONE
@@ -79,6 +89,12 @@ field_datatype_dropdown = tkinter.StringVar()
 field_datatype_dropdown.set('Density')
 field_datatype_dropdown.trace('w', option_changed_fielddata)
 field_data_dropdown = tkinter.OptionMenu(f1, field_datatype_dropdown, *ftype_dict)
+
+field_3ddatatype_dropdown = tkinter.StringVar()
+field_3ddatatype_dropdown.set('Height: Density')
+field_3ddatatype_dropdown.trace('w', option_changed_field3ddata)
+field_3ddata_dropdown = tkinter.OptionMenu(f1, field_3ddatatype_dropdown, *f3dtype_dict)
+
 
 field_color_dropdown = tkinter.StringVar()
 field_color_dropdown.set('Black and White')
@@ -92,6 +108,15 @@ F3d = tkinter.Button(f1, text = "3D On/Off",command=lambda: callBack(Action.THRE
 FScale = tkinter.Scale(f1, from_=0.01, to=2.00, resolution=0.01, orient='horizontal')
 FScale.set(1.00)
 FScaleB = tkinter.Button(f1, text="Set Scale", command=lambda: callBack(Action.SET_SCALE_FIELD, FScale.get()))
+
+FXlookS = tkinter.Scale(f1, from_=-1.5, to=1.5, resolution=0.01, orient='horizontal')
+FXlookS.set(0.00)
+FXlookB = tkinter.Button(f1, text="Set X viewpoint", command=lambda: callBack(Action.CHANGE_X_LOOK, FXlookS.get()))
+
+FYlookS = tkinter.Scale(f1, from_=-0.5, to=0.5, resolution=0.01, orient='horizontal')
+FYlookS.set(0.00)
+FYlookB = tkinter.Button(f1, text="Zoom", command=lambda: callBack(Action.CHANGE_Y_LOOK, -1.5 + FYlookS.get()))
+
 
 FNlevels = tkinter.Scale(f1, from_=2.0, to=256.0, orient='horizontal')
 FNlevels.set(50)
@@ -253,9 +278,14 @@ FreezeButton = tkinter.Button(top, text="Freeze", command=lambda: callBack(Actio
 # Pack everything
 nb.pack()
 field_data_dropdown.pack()
+field_3ddata_dropdown.pack()
 field_c_dropdown.pack()
 FScale.pack()
 FScaleB.pack()
+FXlookS.pack()
+FXlookB.pack()
+FYlookS.pack()
+FYlookB.pack()
 DtSlider.pack()
 DtButton.pack()
 FreezeButton.pack()
