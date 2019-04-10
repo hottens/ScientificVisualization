@@ -65,7 +65,8 @@ def callBack(action, value=None):
 ### Field
 ftype_dict = {'Density': Action.COLORMAP_TYPE_DENSITY,
 
-              'Divergence': Action.COLORMAP_TYPE_DIVERGENCE,
+              'Divergence Velocity field': Action.COLORMAP_TYPE_DIVERGENCE,
+              'Divergence Force field': Action.COLORMAP_TYPE_DIVERGENCE_FORCE,
               'Velocity': Action.COLORMAP_TYPE_VELOCITY,
               'Forces': Action.COLORMAP_TYPE_FORCES
               }
@@ -127,7 +128,8 @@ VShow = tkinter.Button(f2, text = "Show Vectors",command=lambda: callBack(Action
 
 VectorColoringDict = {'Black and White': Action.COLOR_MAG_BLACK,
                       'Rainbow': Action.COLOR_MAG_RAINBOW,
-                      'Twotone': Action.COLOR_MAG_TWOTONE
+                      'Twotone': Action.COLOR_MAG_TWOTONE,
+                      'White'  : Action.COLOR_MAG_WHITE
                       }
 v_color = ttk.Labelframe(f2, text='Color')
 vectClaMinSlider = tkinter.Scale(v_color, from_=0.0, to = 4.99, resolution=0.001, orient='horizontal')
@@ -138,7 +140,7 @@ vectClaMaxSlider.set(1.0)
 vectClaMaxButton = tkinter.Button(v_color, text="Set vect clamp max", command=lambda: callBack(Action.SET_VECT_CLAMP_MAX, vectClaMaxSlider.get()))
 
 vector_coloring_dropdown = tkinter.StringVar()
-vector_coloring_dropdown.set('Black and White')
+vector_coloring_dropdown.set('White')
 vector_coloring_dropdown.trace('w', option_changed_vc)
 vecColDropdown = tkinter.OptionMenu(v_color, vector_coloring_dropdown, *VectorColoringDict)
 ColorDir = tkinter.Button(v_color, text="Color to Magnitude/Direction/Scalar Field", command=lambda: callBack(Action.COLOR_DIR))

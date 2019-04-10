@@ -94,3 +94,6 @@ class Action(enum.Enum):
     SET_STREAMLINE_LENGTH = 73
 
     DISPLACE = 74
+
+    COLORMAP_TYPE_DIVERGENCE_FORCE = 75
+    COLOR_MAG_WHITE = 76 

@@ -97,7 +97,7 @@ parameter_dict = {'Field': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_
                       'hue': 0,'sat':1.0},
               'Vector': {'nlevels': 256, 'scale': 1.0, 'color_scheme': COLOR_WHITE,
                          'show': True, 'clamp_min': 0.0, 'clamp_max':1.0, 'n_glyphs': 16, 'draw_glyphs': 2,
-                         'col_mag': 0, 'vec_scale': 5, 'hue':0,'sat':1.0, 'velocity': True, 'slinelength': 5,
+                         'col_mag': 1, 'vec_scale': 5, 'hue':0,'sat':1.0, 'velocity': True, 'slinelength': 5,
                          'displacement': False}}
 
 
@@ -399,7 +399,7 @@ def vis_color():
 
     # Divergence forces
     elif colormap_type == 4:
-        valuefield = 50 * sim.divforces[:, :] + 0.5
+        valuefield = 50 * sim.divforces[:, :]
 
     global colors
     colors = colormaptovalues(valuefield)
@@ -730,7 +730,7 @@ def performAction(message):
     elif action == Action.COLOR_DIR.name:
         parameter_dict['Vector']['col_mag'] = parameter_dict['Vector']['col_mag'] + 1
         if parameter_dict['Vector']['col_mag'] > 3:
-            parameter_dict['Vector']['col_mag'] = 0
+            parameter_dict['Vector']['col_mag'] = 1
         change_colormap('Vector')
     elif action == Action.DRAW_SMOKE.name:
         parameter_dict['Field']['show'] = not parameter_dict['Field']['show']
@@ -763,6 +763,9 @@ def performAction(message):
         change_colormap('Vector')
     elif action == Action.COLOR_MAG_TWOTONE.name:
         parameter_dict['Vector']['color_scheme'] = COLOR_TWOTONE
+        change_colormap('Vector')
+    elif action == Action.COLOR_MAG_WHITE.name:
+        parameter_dict['Vector']['color_scheme'] = COLOR_WHITE
         change_colormap('Vector')
     elif action == Action.COLORMAP_CHANGE.name:
         parameter_dict['Field']['datatype'] += 1
@@ -823,7 +826,7 @@ def performAction(message):
         parameter_dict['Field']['datatype'] = 2
     elif action == Action.COLORMAP_TYPE_DIVERGENCE.name:
         parameter_dict['Field']['datatype'] = 3
-    elif action == Action.COLORMAP_TYPE_DIVERGENCE.name:
+    elif action == Action.COLORMAP_TYPE_DIVERGENCE_FORCE.name:
         parameter_dict['Field']['datatype'] = 4
     elif action == Action.THREEDIM_ON_OFF.name:
         parameter_dict['Field']['3d'] = not parameter_dict['Field']['3d']
