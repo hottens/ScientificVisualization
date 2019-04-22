@@ -29,21 +29,6 @@ class Simulation:
             self.diffuse_matter()
             self.calc_divergence()
 
-            self.values['force']['min'] = np.floor(np.amin(abs(self.forces[0, :, :] * self.forces[1, :, :])))
-            self.values['force']['max'] = np.ceil(np.amax(abs(self.forces[0, :, :] * self.forces[1, :, :])))
-
-            self.values['velo']['min'] = np.floor(np.amin(abs(self.field[0, :, :] * self.field[1, :, :])))
-            self.values['velo']['max'] = np.ceil(np.amax(abs(self.field[0, :, :] * self.field[1, :, :])))
-
-            self.values['rho']['min'] = np.floor(np.amin(self.field[-1, :, :]))
-            self.values['rho']['max'] = np.ceil(np.amax(self.field[-1, :, :]))
-
-            self.values['div_v']['min'] = np.floor(np.amin(self.divfield))
-            self.values['div_v']['max'] = np.ceil(np.amax(self.divfield))
-
-            self.values['div_f']['min'] = np.floor(np.amin(self.divforces))
-            self.values['div_f']['max'] = np.ceil(np.amax(self.divforces))
-
     ### Define how forces evolve over time
     def set_forces(self):
         self.field0[-1, :, :] = self.field[-1, :, :] * 0.9
